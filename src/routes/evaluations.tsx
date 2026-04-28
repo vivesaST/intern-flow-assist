@@ -70,8 +70,8 @@ function EvaluationsPage() {
               <RadarChart data={evaluationScores}>
                 <PolarGrid />
                 <PolarAngleAxis dataKey="criterion" fontSize={11} />
-                <Radar name="Mid-term" dataKey="mid" stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={0.25} />
-                <Radar name="Final" dataKey="final" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.4} />
+                <Radar name="Mid-term" dataKey="mid" stroke="var(--color-chart-3)" fill="var(--color-chart-3)" fillOpacity={0.25} />
+                <Radar name="Final" dataKey="final" stroke="var(--color-chart-2)" fill="var(--color-chart-2)" fillOpacity={0.4} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Tooltip />
               </RadarChart>

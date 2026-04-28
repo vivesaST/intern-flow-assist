@@ -16,7 +16,7 @@ export const Route = createFileRoute("/reports")({
   component: ReportsPage,
 });
 
-const PIE_COLORS = ["hsl(var(--chart-1))","hsl(var(--chart-2))","hsl(var(--chart-3))","hsl(var(--chart-4))","hsl(var(--chart-5))"];
+const PIE_COLORS = ["var(--color-chart-1)","var(--color-chart-2)","var(--color-chart-3)","var(--color-chart-4)","var(--color-chart-5)"];
 
 function ReportsPage() {
   return (
@@ -41,8 +41,8 @@ function ReportsPage() {
                 <YAxis fontSize={12} />
                 <Tooltip />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line dataKey="submitted" stroke="hsl(var(--chart-1))" strokeWidth={2} />
-                <Line dataKey="approved" stroke="hsl(var(--chart-2))" strokeWidth={2} />
+                <Line dataKey="submitted" stroke="var(--color-chart-1)" strokeWidth={2} />
+                <Line dataKey="approved" stroke="var(--color-chart-2)" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -79,8 +79,8 @@ function ReportsPage() {
                 <YAxis fontSize={12} />
                 <Tooltip />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="mid" fill="hsl(var(--chart-3))" radius={[4,4,0,0]} />
-                <Bar dataKey="final" fill="hsl(var(--chart-2))" radius={[4,4,0,0]} />
+                <Bar dataKey="mid" fill="var(--color-chart-3)" radius={[4,4,0,0]} />
+                <Bar dataKey="final" fill="var(--color-chart-2)" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
