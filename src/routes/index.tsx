@@ -16,7 +16,7 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SIMS — Smart Internship Management System" },
+      { title: "Smart Internship (SI) — Internship Management Platform" },
       { name: "description", content: "Automate internship logbooks, supervisor assignment, evaluations, and reporting in one platform built for institutions and industry." },
     ],
   }),
@@ -39,10 +39,10 @@ function Landing() {
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-md bg-primary text-primary-foreground grid place-items-center font-bold">S</div>
+            <div className="h-9 w-9 rounded-md bg-primary text-primary-foreground grid place-items-center font-bold text-sm">SI</div>
             <div className="leading-tight">
-              <div className="font-semibold text-foreground">SIMS</div>
-              <div className="text-xs text-muted-foreground">Smart Internship Management</div>
+              <div className="font-semibold text-foreground">Smart Internship</div>
+              <div className="text-xs text-muted-foreground">SI · Internship Platform</div>
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
@@ -53,7 +53,7 @@ function Landing() {
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost"><Link to="/login">Sign in</Link></Button>
             <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90">
-              <Link to="/dashboard">Open demo <ArrowRight className="ml-1 h-4 w-4" /></Link>
+              <Link to="/dashboard">Enter platform <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>
           </div>
         </div>
@@ -61,25 +61,24 @@ function Landing() {
 
       {/* Hero */}
       <section className="bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <Badge className="bg-accent text-accent-foreground mb-4">Final Year Project · 2026</Badge>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
+        <div className="max-w-4xl mx-auto px-6 py-24 text-center">
+          <Badge className="bg-accent text-accent-foreground mb-4">Final Year Project · 2026</Badge>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
               Automate the entire internship lifecycle — from placement to evaluation.
-            </h1>
-            <p className="mt-5 text-primary-foreground/80 text-lg">
-              SIMS gives universities and host companies one platform to manage logbooks,
+          </h1>
+          <p className="mt-5 text-primary-foreground/80 text-lg max-w-2xl mx-auto">
+              Smart Internship (SI) gives universities and host companies one platform to manage logbooks,
               supervisor assignments, tasks, and evaluations with full transparency.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3 justify-center">
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                <Link to="/dashboard">Explore the demo</Link>
+                <Link to="/dashboard">Launch dashboard</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+              <Button asChild size="lg" variant="ghost" className="border border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
                 <Link to="/login">Sign in as another role</Link>
               </Button>
-            </div>
-            <div className="mt-8 grid grid-cols-3 gap-6 max-w-md">
+          </div>
+          <div className="mt-10 grid grid-cols-3 gap-6 max-w-md mx-auto">
               {[
                 { k: "60%", v: "Less paperwork" },
                 { k: "4×", v: "Faster approvals" },
@@ -90,32 +89,6 @@ function Landing() {
                   <div className="text-xs text-primary-foreground/70">{s.v}</div>
                 </div>
               ))}
-            </div>
-          </div>
-          <div className="relative">
-            <div className="rounded-xl border border-primary-foreground/10 bg-primary-foreground/5 backdrop-blur p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-sm font-medium">This week · Logbook</div>
-                <Badge className="bg-accent text-accent-foreground">Approved</Badge>
-              </div>
-              <div className="space-y-3 text-sm">
-                {[
-                  ["Mon", "Sprint planning · 8 hrs"],
-                  ["Tue", "Built form components · 9 hrs"],
-                  ["Wed", "Code review · 7 hrs"],
-                  ["Thu", "UAT prep · 8 hrs"],
-                  ["Fri", "Demo + retro · 6 hrs"],
-                ].map(([d, a]) => (
-                  <div key={d} className="flex justify-between border-b border-primary-foreground/10 pb-2">
-                    <span className="text-primary-foreground/60 w-10">{d}</span>
-                    <span className="flex-1">{a}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 text-xs text-primary-foreground/70">
-                Reviewed by Daniel Yusuf · Co-signed by Dr. Bola Adeyemi
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -179,8 +152,8 @@ function Landing() {
 
       <footer className="border-t bg-primary text-primary-foreground/80">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row md:items-center justify-between gap-3 text-sm">
-          <div>© 2026 SIMS · Final Year Project</div>
-          <div>Smart Internship Management System</div>
+          <div>© 2026 Smart Internship (SI) · Final Year Project</div>
+          <div>Smart Internship Management Platform</div>
         </div>
       </footer>
     </div>
