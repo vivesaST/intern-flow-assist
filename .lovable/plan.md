@@ -1,68 +1,89 @@
-## Problem
+## Goal
 
-Session 3 (System Design) of `SmartInternship_Proposal.docx` and the corresponding slides in `SmartInternship_Presentation.pptx` are text-only. A System Design chapter must be **diagram-driven**. I'll regenerate both artifacts with embedded visual diagrams.
+Rewrite `/mnt/documents/SmartInternship_Presentation.pptx` so the content is supervisor-friendly: simpler language, more substance per slide (no scanty layouts), cleaner outlines, fixed slide order, and clean diagrams (no "Lovable" watermark on the deployment diagram).
 
-## Diagrams to add (Session 3)
+## Specific user requests addressed
 
-I'll render each diagram as a **PNG** (using Mermaid CLI → PNG, or Python `matplotlib`/`graphviz` for ERD/flowcharts) and embed them inline in the docx + pptx with captions ("Figure 3.x — …").
+1. **Simplify wording** — replace academic/jargon phrasing with clear, descriptive bullets a supervisor can read at a glance.
+2. **Fill out the slides** — every slide gets a short intro line, 4–6 well-spaced bullets with sub-points where useful, and a takeaway/footer line. No more half-empty slides.
+3. **Outline the slides** — consistent structure: title bar (navy), thin amber underline accent, intro lead, bullets, footer. Same grid every slide.
+4. **Remove "Lovable" text from the Deployment Topology diagram** — re-render the Graphviz diagram without that label, keep the other node labels (Cloudflare Edge, Worker, Postgres, Object Storage, Auth, Email).
+5. **Fix slide order** — current deck has slides 1–20 (intro→Thank You) and then 21–27 (the design diagrams) appended after Thank You. Move all diagram slides BEFORE the Thank You slide so Thank You is the final slide. New order: 1 Title → 2 Agenda → 3–10 (background through NFRs) → 11–13 (architecture/data/use-cases text) → 14–18 (workflows + UI + security) → 19 (schedule) → 20–26 (the 7 design diagrams, with **Sequence – Logbook Approval removed**) → final Thank You.
+6. **Remove the "Sequence — Logbook Approval" slide** entirely.
 
-| # | Diagram | Type | Tool |
-|---|---|---|---|
-| 3.1 | System Architecture (3-tier: Client → TanStack Start Server → Postgres + Storage + Auth) | Block diagram | Mermaid `graph` |
-| 3.2 | Use Case Diagram (Student, Academic Sup., Industry Sup., Admin actors + use cases) | UML use case | Graphviz / Mermaid |
-| 3.3 | Entity Relationship Diagram (users, roles, placements, companies, supervisors, logbook_entries, tasks, evaluations, comments) | ERD | Mermaid `erDiagram` |
-| 3.4 | Data Flow Diagram — Level 0 (context) and Level 1 (logbook submission + supervisor approval) | DFD | Graphviz |
-| 3.5 | Sequence Diagram — Logbook submission & approval workflow | UML sequence | Mermaid `sequenceDiagram` |
-| 3.6 | Sequence Diagram — Supervisor assignment & placement matching | UML sequence | Mermaid `sequenceDiagram` |
-| 3.7 | Activity Flowchart — Internship lifecycle (application → placement → weekly logbook → mid/final evaluation → completion) | Flowchart | Mermaid `flowchart` |
-| 3.8 | Database Schema (table boxes with columns, PK/FK arrows) | Schema diagram | Graphviz `record` nodes |
-| 3.9 | Component / Module Diagram (frontend modules ↔ server functions ↔ DB) | Component | Mermaid |
-| 3.10 | Deployment Diagram (Cloudflare Worker edge + Postgres + Object Storage + Auth Gateway) | Deployment | Mermaid |
+## Final slide list (target)
 
-Each figure gets a numbered caption (Times New Roman, 12pt, italic, centered) and a 1–2 paragraph explanation referring to it ("As shown in Figure 3.3, the `logbook_entries` table relates to `placements` via …").
+```text
+ 1. Title — Smart Internship (SI)
+ 2. Agenda
+ 3. Background
+ 4. Problem Statement
+ 5. Aim & Objectives
+ 6. Research Questions
+ 7. Literature Review — Themes
+ 8. Methodology
+ 9. Functional Requirements
+10. Non-Functional Requirements
+11. System Architecture (text + bounded contexts)
+12. Data Model — Principal Entities
+13. Use Case Model (text)
+14. Logbook Submission Workflow
+15. Supervisor Assignment — Workload Balancing
+16. Evaluation Module
+17. User-Interface Design
+18. Security Design
+19. Project Schedule
+20. Diagram — System Architecture
+21. Diagram — Use Case
+22. Diagram — Entity Relationship
+23. Diagram — Data Flow (Level 1)
+24. Diagram — Internship Lifecycle Flowchart
+25. Diagram — Deployment Topology  (re-rendered, no "Lovable" label)
+26. Thank You
+```
 
-## Document changes (`SmartInternship_Proposal.docx`)
+(Sequence – Logbook Approval slide deleted; previous trailing position of Thank You corrected.)
 
-- Rebuild Session 3 around the 10 figures above; expand subsections:
-  - 3.1 System Architecture Overview → embed Fig 3.1, Fig 3.10
-  - 3.2 Use Case Modelling → embed Fig 3.2 + actor/use-case table
-  - 3.3 Process & Flow Design → embed Fig 3.4 (DFD L0/L1), Fig 3.7 (lifecycle flowchart)
-  - 3.4 Interaction Design → embed Fig 3.5, Fig 3.6 (sequence diagrams)
-  - 3.5 Database Design → embed Fig 3.3 (ERD), Fig 3.8 (schema), plus a data-dictionary table for each main entity
-  - 3.6 Component / Module Design → embed Fig 3.9
-  - 3.7 UI / UX Design → keep existing copy, add 2–3 wireframe-style figures (rendered from the live app screens: dashboard, logbook, placements) captured via headless screenshot
-- Keep all other sessions intact, keep 37 APA references at the end.
-- Maintain Times New Roman, headings 14pt bold, body 12pt.
+## Content rewrite principles
 
-## Presentation changes (`SmartInternship_Presentation.pptx`)
+For each text slide:
+- **Title** (28pt navy bold) + thin amber rule.
+- **One-line lead** in plain English ("What this means for supervisors: …").
+- **4–6 bullets**, each ≤ 14 words, action-oriented, no acronyms without expansion on first use.
+- **Sub-bullets** only where a concrete example helps (e.g. "Weekly logbook → submitted Monday, approved by Friday").
+- **Footer**: "Smart Internship (SI) · FYP 2026" + slide number.
 
-Insert/replace System Design slides (around slides 8–14) so each key diagram gets its own slide:
-- Slide: System Architecture (Fig 3.1)
-- Slide: Use Case Diagram (Fig 3.2)
-- Slide: ERD (Fig 3.3)
-- Slide: DFD Level 0 + Level 1 (Fig 3.4)
-- Slide: Logbook Sequence (Fig 3.5)
-- Slide: Internship Lifecycle Flowchart (Fig 3.7)
-- Slide: Database Schema (Fig 3.8)
-- Slide: Deployment Diagram (Fig 3.10)
+Examples of simplification:
+- "FR-04..06: Weekly logbook entries, multi-stage approval, threaded feedback." → "Students submit a short weekly logbook. Industry supervisor approves first, then academic supervisor. Comments stay attached to each entry."
+- "Defence in depth: app bug cannot bypass DB-tier policies." → "Even if the website has a bug, the database itself blocks unauthorised access."
 
-Each slide: title (28pt bold), centered diagram image, 2–3 bullet caption on the side or below. Same Deep Navy / Amber palette.
+## Diagram slides
 
-## QA
+- Use the existing PNGs already generated in the previous run, except **Deployment Topology**, which will be re-rendered from a fresh Graphviz `.dot` source with the "Lovable" node/label removed (keep: Browser → Cloudflare Edge → TanStack Worker → Managed Postgres / Object Storage / Auth / Email).
+- Each diagram slide: title, image (sized to fit with 0.5" margins), 4 plain-English bullets to the side or below explaining what the supervisor is looking at.
+- Skip "Sequence — Logbook Approval" entirely (covered by the Logbook Submission Workflow text slide).
 
-1. Render each diagram PNG individually and visually inspect (no clipped labels, readable text at slide size).
-2. Convert final `.docx` → PDF, inspect every page of Session 3 to confirm figures aren't cut off, captions are present, page count for Session 3 lands in the 10–13 range.
-3. Convert final `.pptx` → images, inspect each new design slide for layout, contrast, and overflow.
-4. Re-emit both artifact tags.
+## Visual design (consistent across all slides)
 
-## Tooling
+- Palette: Deep Navy `#0B2545`, Amber accent `#F4B324`, Slate text `#1F2937`, light surface `#F8FAFC`.
+- Title bar: navy text on white, 28pt bold, with a 4pt amber rule underneath.
+- Bullets: 16pt slate, 1.25 line spacing, generous left margin.
+- Footer band: thin navy strip with white footer text + page number.
+- Same master applied to every slide → "outlined well" appearance.
 
-- `@mermaid-js/mermaid-cli` (`mmdc`) via `bunx` for Mermaid → PNG.
-- `graphviz` (`dot`) via `nix run nixpkgs#graphviz` for DFD / schema diagrams.
-- `docx` npm package for the Word file (existing pipeline), `pptxgenjs` for slides — both already in use.
-- `libreoffice` for docx→pdf QA, `pdftoppm` for slide image QA.
+## Build steps (when approved)
+
+1. Re-render Deployment Topology PNG with `dot` (Graphviz) from a cleaned `.dot` source — confirm visually that no "Lovable" label remains.
+2. Generate the deck with `pptxgenjs` using a single shared layout helper so every slide shares title bar, amber rule, and footer.
+3. Run QA: convert pptx → PDF (LibreOffice) → JPEGs (`pdftoppm`), inspect every slide, confirm:
+   - Thank You is the last slide.
+   - No "Sequence — Logbook Approval" slide.
+   - Deployment diagram has no "Lovable" text.
+   - No empty/scanty slides; bullets render fully without overflow.
+4. Re-emit the artifact.
 
 ## Out of scope
 
-- No UI code changes this turn.
-- No new sessions, no reference list changes — only Session 3 content + matching slides are rebuilt.
+- No changes to the Word proposal this turn.
+- No UI/code changes.
+- No new diagrams beyond re-rendering Deployment Topology.
