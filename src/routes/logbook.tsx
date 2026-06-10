@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { logEntries, type LogEntry } from "@/lib/mock-data";
-import { MessageSquare, Paperclip } from "lucide-react";
+import { Paperclip } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/role-context";
+import { toast } from "sonner";
+
+type LogStatus = "draft" | "submitted" | "approved" | "revision";
+type LogEntry = {
+  id: string;
+  week: number;
+  entry_date: string;
+  hours: number;
+  title: string;
+  activities: string | null;
+  skills: string[] | null;
+  status: LogStatus;
+};
 
 export const Route = createFileRoute("/logbook")({
   head: () => ({ meta: [{ title: "Logbook · SIMS" }] }),
@@ -43,7 +57,65 @@ function StatusBadge({ s }: { s: LogEntry["status"] }) {
 }
 
 function LogbookPage() {
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<LogEntry | null>(null);
+  const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+
+  // form state
+  const [week, setWeek] = useState("");
+  const [date, setDate] = useState("");
+  const [hours, setHours] = useState("");
+  const [title, setTitle] = useState("");
+  const [activities, setActivities] = useState("");
+  const [skills, setSkills] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate({ to: "/auth" });
+  }, [authLoading, user, navigate]);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("log_entries")
+      .select("id, week, entry_date, hours, title, activities, skills, status")
+      .order("week", { ascending: false });
+    if (error) toast.error(error.message);
+    setEntries((data as LogEntry[]) ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user) load();
+  }, [user]);
+
+  const save = async (status: LogStatus) => {
+    if (!user) return;
+    if (!week || !date || !title) {
+      toast.error("Week, date and title are required");
+      return;
+    }
+    const { error } = await supabase.from("log_entries").insert({
+      student_id: user.id,
+      week: parseInt(week, 10),
+      entry_date: date,
+      hours: hours ? parseFloat(hours) : 0,
+      title,
+      activities,
+      skills: skills ? skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      status,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(status === "draft" ? "Draft saved" : "Submitted for approval");
+    setOpen(false);
+    setWeek(""); setDate(""); setHours(""); setTitle(""); setActivities(""); setSkills("");
+    load();
+  };
 
   return (
     <AppShell>
@@ -51,7 +123,7 @@ function LogbookPage() {
         title="Logbook"
         description="Weekly entries with industry and academic supervisor approvals."
         actions={
-          <Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-accent text-accent-foreground hover:bg-accent/90">+ New entry</Button>
             </DialogTrigger>
@@ -62,17 +134,17 @@ function LogbookPage() {
               </DialogHeader>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Week</Label><Input placeholder="15" /></div>
-                  <div><Label>Date</Label><Input type="date" /></div>
+                  <div><Label>Week</Label><Input type="number" placeholder="15" value={week} onChange={(e) => setWeek(e.target.value)} /></div>
+                  <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
                 </div>
-                <div><Label>Hours</Label><Input type="number" placeholder="40" /></div>
-                <div><Label>Title</Label><Input placeholder="Sprint planning & component refactor" /></div>
-                <div><Label>Activities</Label><Textarea placeholder="Describe what you did this week..." rows={4} /></div>
-                <div><Label>Skills practised</Label><Input placeholder="React, TypeScript, Testing" /></div>
+                <div><Label>Hours</Label><Input type="number" placeholder="40" value={hours} onChange={(e) => setHours(e.target.value)} /></div>
+                <div><Label>Title</Label><Input placeholder="Sprint planning & component refactor" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+                <div><Label>Activities</Label><Textarea placeholder="Describe what you did this week..." rows={4} value={activities} onChange={(e) => setActivities(e.target.value)} /></div>
+                <div><Label>Skills practised (comma separated)</Label><Input placeholder="React, TypeScript, Testing" value={skills} onChange={(e) => setSkills(e.target.value)} /></div>
               </div>
               <DialogFooter>
-                <Button variant="outline">Save draft</Button>
-                <Button>Submit for approval</Button>
+                <Button variant="outline" onClick={() => save("draft")}>Save draft</Button>
+                <Button onClick={() => save("submitted")}>Submit for approval</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -81,10 +153,10 @@ function LogbookPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Submitted", value: logEntries.filter(e => e.status === "submitted").length },
-          { label: "Approved", value: logEntries.filter(e => e.status === "approved").length },
-          { label: "Revision", value: logEntries.filter(e => e.status === "revision").length },
-          { label: "Drafts", value: logEntries.filter(e => e.status === "draft").length },
+          { label: "Submitted", value: entries.filter(e => e.status === "submitted").length },
+          { label: "Approved", value: entries.filter(e => e.status === "approved").length },
+          { label: "Revision", value: entries.filter(e => e.status === "revision").length },
+          { label: "Drafts", value: entries.filter(e => e.status === "draft").length },
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="p-5">
@@ -98,6 +170,11 @@ function LogbookPage() {
       <Card>
         <CardHeader><CardTitle>All entries</CardTitle></CardHeader>
         <CardContent>
+          {loading ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">Loading…</div>
+          ) : entries.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">No entries yet. Create your first logbook entry above.</div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -105,23 +182,22 @@ function LogbookPage() {
                 <TableHead>Date</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Hours</TableHead>
-                <TableHead>Comments</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logEntries.map((e) => (
+              {entries.map((e) => (
                 <TableRow key={e.id} className="cursor-pointer" onClick={() => setSelected(e)}>
                   <TableCell className="font-mono text-xs">W{e.week}</TableCell>
-                  <TableCell>{e.date}</TableCell>
+                  <TableCell>{e.entry_date}</TableCell>
                   <TableCell className="font-medium">{e.title}</TableCell>
                   <TableCell>{e.hours}</TableCell>
-                  <TableCell><MessageSquare className="h-3 w-3 inline mr-1" />{e.comments}</TableCell>
                   <TableCell><StatusBadge s={e.status} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -131,7 +207,7 @@ function LogbookPage() {
             <>
               <DialogHeader>
                 <DialogTitle>Week {selected.week} · {selected.title}</DialogTitle>
-                <DialogDescription>{selected.date} · {selected.hours} hours</DialogDescription>
+                <DialogDescription>{selected.entry_date} · {selected.hours} hours</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -141,31 +217,11 @@ function LogbookPage() {
                 <div>
                   <div className="text-xs text-muted-foreground uppercase mb-1">Skills practised</div>
                   <div className="flex gap-2 flex-wrap">
-                    {selected.skills.map(s => <Badge key={s} variant="secondary">{s}</Badge>)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground uppercase mb-2">Supervisor feedback</div>
-                  <div className="space-y-2 max-h-48 overflow-auto">
-                    <div className="rounded-md border p-3">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium">Daniel Yusuf · Industry</span>
-                        <span className="text-muted-foreground">2 days ago</span>
-                      </div>
-                      <p className="text-sm">Solid week. Make sure form components have proper a11y labels.</p>
-                    </div>
-                    <div className="rounded-md border p-3">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium">Dr. Bola Adeyemi · Academic</span>
-                        <span className="text-muted-foreground">1 day ago</span>
-                      </div>
-                      <p className="text-sm">Co-signed. Reflect on testing coverage in next entry.</p>
-                    </div>
+                    {(selected.skills ?? []).map(s => <Badge key={s} variant="secondary">{s}</Badge>)}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Paperclip className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">2 attachments</span>
                   <StatusBadge s={selected.status} />
                 </div>
               </div>
