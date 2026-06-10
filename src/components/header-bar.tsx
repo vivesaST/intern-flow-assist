@@ -1,4 +1,4 @@
-import { Bell, Search } from "lucide-react";
+import { Bell, LogOut, Search } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,15 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useRole } from "@/lib/role-context";
+import { useAuth } from "@/lib/role-context";
 import { ROLES, currentUser } from "@/lib/mock-data";
+import { useNavigate } from "@tanstack/react-router";
 
 export function HeaderBar() {
-  const { role, setRole } = useRole();
+  const { role, setRole, user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const displayName = user?.user_metadata?.full_name || user?.email || currentUser.name;
+  const initials = displayName.split(" ").map((n: string) => n[0]).slice(0, 2).join("");
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4">
       <SidebarTrigger />
@@ -26,7 +30,7 @@ export function HeaderBar() {
         </div>
       </div>
       <div className="ml-auto flex items-center gap-3">
-        <Badge variant="outline" className="hidden sm:inline-flex">Demo</Badge>
+        {!user && <Badge variant="outline" className="hidden sm:inline-flex">Demo</Badge>}
         <Select value={role} onValueChange={(v) => setRole(v as any)}>
           <SelectTrigger className="w-[200px] h-9">
             <SelectValue />
@@ -45,14 +49,19 @@ export function HeaderBar() {
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              {currentUser.name.split(" ").map((n) => n[0]).join("")}
+              {initials}
             </AvatarFallback>
           </Avatar>
           <div className="hidden md:flex flex-col leading-tight">
-            <span className="text-xs font-medium">{currentUser.name}</span>
-            <span className="text-[10px] text-muted-foreground">{currentUser.matric}</span>
+            <span className="text-xs font-medium">{displayName}</span>
+            <span className="text-[10px] text-muted-foreground">{user?.email ?? currentUser.matric}</span>
           </div>
         </div>
+        {user && (
+          <Button variant="ghost" size="icon" onClick={async () => { await signOut(); navigate({ to: "/auth" }); }} title="Sign out">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </header>
   );
