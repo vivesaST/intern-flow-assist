@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { submissionTrend, sectorDistribution, evaluationScores } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ResponsiveContainer,
   BarChart, Bar,
@@ -19,6 +20,50 @@ export const Route = createFileRoute("/reports")({
 const PIE_COLORS = ["var(--color-chart-1)","var(--color-chart-2)","var(--color-chart-3)","var(--color-chart-4)","var(--color-chart-5)"];
 
 function ReportsPage() {
+  const [submissionTrend, setSubmissionTrend] = useState<{ week: string; submitted: number; approved: number }[]>([]);
+  const [sectorDistribution, setSectorDistribution] = useState<{ name: string; value: number }[]>([]);
+  const [evaluationScores, setEvaluationScores] = useState<{ criterion: string; mid: number; final: number }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: logs } = await supabase.from("log_entries").select("week, status");
+      const byWeek = new Map<number, { submitted: number; approved: number }>();
+      (logs ?? []).forEach((l: any) => {
+        const w = byWeek.get(l.week) ?? { submitted: 0, approved: 0 };
+        if (l.status === "submitted" || l.status === "approved" || l.status === "revision") w.submitted++;
+        if (l.status === "approved") w.approved++;
+        byWeek.set(l.week, w);
+      });
+      setSubmissionTrend(
+        Array.from(byWeek.entries()).sort((a, b) => a[0] - b[0])
+          .map(([w, v]) => ({ week: `W${w}`, ...v })),
+      );
+
+      const { data: placements } = await supabase.from("placements").select("company_id, status").neq("status", "pending");
+      const { data: companies } = await supabase.from("companies").select("id, sector");
+      const sectorMap = new Map((companies ?? []).map((c: any) => [c.id, c.sector ?? "Other"]));
+      const sectorCounts = new Map<string, number>();
+      (placements ?? []).forEach((p: any) => {
+        const s = sectorMap.get(p.company_id) ?? "Other";
+        sectorCounts.set(s, (sectorCounts.get(s) ?? 0) + 1);
+      });
+      setSectorDistribution(Array.from(sectorCounts.entries()).map(([name, value]) => ({ name, value })));
+
+      const { data: evals } = await supabase.from("evaluations").select("criterion, mid_score, final_score");
+      const byCrit = new Map<string, { mid: number[]; final: number[] }>();
+      (evals ?? []).forEach((e: any) => {
+        const v = byCrit.get(e.criterion) ?? { mid: [], final: [] };
+        if (e.mid_score != null) v.mid.push(e.mid_score);
+        if (e.final_score != null) v.final.push(e.final_score);
+        byCrit.set(e.criterion, v);
+      });
+      const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+      setEvaluationScores(Array.from(byCrit.entries()).map(([criterion, v]) => ({
+        criterion, mid: avg(v.mid), final: avg(v.final),
+      })));
+    })();
+  }, []);
+
   return (
     <AppShell>
       <PageHeader
