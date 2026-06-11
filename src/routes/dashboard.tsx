@@ -1,19 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useRole } from "@/lib/role-context";
-import {
-  currentUser,
-  stats,
-  logEntries,
-  tasks,
-  students,
-  supervisors,
-  submissionTrend,
-} from "@/lib/mock-data";
+import { useAuth, useRole } from "@/lib/role-context";
+import { supabase } from "@/integrations/supabase/client";
 import {
   BookOpen,
   Clock,
@@ -62,10 +55,74 @@ function StatCard({
 
 function Dashboard() {
   const { role } = useRole();
+  const { user } = useAuth();
+  const [name, setName] = useState<string>("");
+  const [stats, setStats] = useState({
+    hoursLogged: 0, hoursTarget: 480,
+    weeksCompleted: 0, totalWeeks: 24,
+    tasksDone: 0, tasksOpen: 0,
+    logsApprovedPending: 0,
+    totalStudents: 0, totalCompanies: 0, totalSupervisors: 0, pendingPlacement: 0,
+  });
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [openTasks, setOpenTasks] = useState<any[]>([]);
+  const [submissionTrend, setSubmissionTrend] = useState<{ week: string; submitted: number; approved: number }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      if (!user) return;
+      if (role === "student") {
+        const [{ data: logs }, { data: ts }] = await Promise.all([
+          supabase.from("log_entries").select("*").eq("student_id", user.id).order("week", { ascending: false }),
+          supabase.from("tasks").select("*").eq("student_id", user.id).order("created_at", { ascending: false }),
+        ]);
+        const { data: prof } = await supabase.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
+        setName((prof?.full_name ?? prof?.email ?? "").split(" ")[0] || "there");
+        const hours = (logs ?? []).reduce((a, l) => a + (l.hours ?? 0), 0);
+        const weeks = new Set((logs ?? []).map(l => l.week)).size;
+        setStats(s => ({
+          ...s,
+          hoursLogged: hours, weeksCompleted: weeks,
+          tasksDone: (ts ?? []).filter(t => t.status === "graded").length,
+          tasksOpen: (ts ?? []).filter(t => t.status !== "graded").length,
+        }));
+        setRecentLogs((logs ?? []).slice(0, 4));
+        setOpenTasks((ts ?? []).filter(t => t.status !== "graded").slice(0, 4));
+      } else if (role === "admin") {
+        const [{ count: cStud }, { count: cComp }, { count: cSup }, { data: pls }, { data: logs }] = await Promise.all([
+          supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "student"),
+          supabase.from("companies").select("*", { count: "exact", head: true }),
+          supabase.from("supervisors").select("*", { count: "exact", head: true }),
+          supabase.from("placements").select("status"),
+          supabase.from("log_entries").select("week, status"),
+        ]);
+        setStats(s => ({
+          ...s,
+          totalStudents: cStud ?? 0, totalCompanies: cComp ?? 0, totalSupervisors: cSup ?? 0,
+          pendingPlacement: (pls ?? []).filter(p => p.status === "pending").length,
+        }));
+        const byWeek = new Map<number, { submitted: number; approved: number }>();
+        (logs ?? []).forEach((l: any) => {
+          const w = byWeek.get(l.week) ?? { submitted: 0, approved: 0 };
+          if (l.status !== "draft") w.submitted++;
+          if (l.status === "approved") w.approved++;
+          byWeek.set(l.week, w);
+        });
+        setSubmissionTrend(Array.from(byWeek.entries()).sort((a, b) => a[0] - b[0]).map(([w, v]) => ({ week: `W${w}`, ...v })));
+      } else {
+        // academic / industry: show pending logbook approvals + task counts
+        const [{ count: pendingLogs }, { count: gradedTasks }] = await Promise.all([
+          supabase.from("log_entries").select("*", { count: "exact", head: true }).eq("status", "submitted"),
+          supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "graded"),
+        ]);
+        setStats(s => ({ ...s, logsApprovedPending: pendingLogs ?? 0, tasksDone: gradedTasks ?? 0 }));
+      }
+    })();
+  }, [role, user?.id]);
 
   const heading =
     role === "student"
-      ? `Welcome back, ${currentUser.name.split(" ")[0]}`
+      ? `Welcome back, ${name || "there"}`
       : role === "academic"
       ? "Academic supervisor dashboard"
       : role === "industry"
@@ -74,7 +131,7 @@ function Dashboard() {
 
   const description =
     role === "student"
-      ? `${currentUser.position} · ${currentUser.company}`
+      ? "Your internship progress at a glance."
       : role === "academic"
       ? "Review logbooks, moderate evaluations, monitor your supervisees."
       : role === "industry"
@@ -103,14 +160,14 @@ function Dashboard() {
             <StatCard icon={Clock} label="Hours logged" value={`${stats.hoursLogged}`} hint={`of ${stats.hoursTarget} target`} />
             <StatCard icon={BookOpen} label="Weeks completed" value={`${stats.weeksCompleted}/${stats.totalWeeks}`} />
             <StatCard icon={CheckCircle2} label="Tasks done" value={`${stats.tasksDone}`} hint={`${stats.tasksOpen} open`} tone="accent" />
-            <StatCard icon={TrendingUp} label="Overall grade" value={stats.overallGrade} tone="accent" />
+            <StatCard icon={TrendingUp} label="Open tasks" value={`${stats.tasksOpen}`} tone="accent" />
           </div>
 
           <div className="grid lg:grid-cols-3 gap-4 mt-6">
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Internship progress</CardTitle>
-                <CardDescription>{currentUser.startDate} → {currentUser.endDate}</CardDescription>
+                <CardDescription>Weeks and hours logged</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div>
@@ -125,16 +182,6 @@ function Dashboard() {
                   </div>
                   <Progress value={(stats.hoursLogged / stats.hoursTarget) * 100} />
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm pt-3 border-t">
-                  <div>
-                    <div className="text-muted-foreground text-xs">Academic supervisor</div>
-                    <div className="font-medium">{currentUser.academicSupervisor}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground text-xs">Industry supervisor</div>
-                    <div className="font-medium">{currentUser.industrySupervisor}</div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
@@ -144,16 +191,17 @@ function Dashboard() {
                 <CardDescription>From your industry supervisor</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {tasks.filter(t => t.status !== "graded").slice(0, 4).map((t) => (
+                {openTasks.map((t) => (
                   <div key={t.id} className="flex items-start gap-3 pb-3 border-b last:border-b-0 last:pb-0">
                     <div className={`h-2 w-2 rounded-full mt-1.5 ${t.priority === "high" ? "bg-destructive" : t.priority === "medium" ? "bg-accent" : "bg-muted-foreground"}`} />
                     <div className="flex-1">
                       <div className="text-sm font-medium">{t.title}</div>
-                      <div className="text-xs text-muted-foreground">Due {t.due}</div>
+                      {t.due_date && <div className="text-xs text-muted-foreground">Due {t.due_date}</div>}
                     </div>
                     <Badge variant="outline" className="text-[10px]">{t.status}</Badge>
                   </div>
                 ))}
+                {openTasks.length === 0 && <div className="text-xs text-muted-foreground">No open tasks.</div>}
                 <Button asChild variant="ghost" className="w-full"><Link to="/tasks">View all tasks →</Link></Button>
               </CardContent>
             </Card>
@@ -166,16 +214,17 @@ function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {logEntries.slice(0, 4).map((e) => (
+                {recentLogs.map((e) => (
                   <div key={e.id} className="flex items-center gap-4 p-3 rounded-md hover:bg-muted/40">
                     <div className="text-xs font-mono text-muted-foreground w-16">W{e.week}</div>
                     <div className="flex-1">
                       <div className="text-sm font-medium">{e.title}</div>
-                      <div className="text-xs text-muted-foreground">{e.date} · {e.hours} hrs</div>
+                      <div className="text-xs text-muted-foreground">{e.entry_date} · {e.hours} hrs</div>
                     </div>
                     <StatusBadge status={e.status} />
                   </div>
                 ))}
+                {recentLogs.length === 0 && <div className="text-xs text-muted-foreground">No entries yet.</div>}
               </div>
             </CardContent>
           </Card>
@@ -185,79 +234,37 @@ function Dashboard() {
       {role === "academic" && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Users} label="Supervisees" value="12" hint="across 3 companies" />
-            <StatCard icon={AlertCircle} label="Pending approvals" value="3" tone="accent" />
-            <StatCard icon={CheckCircle2} label="Evaluations done" value="9/12" />
-            <StatCard icon={TrendingUp} label="Avg. final score" value="84%" />
+            <StatCard icon={Users} label="Supervisees" value={`${stats.totalStudents}`} />
+            <StatCard icon={AlertCircle} label="Logbooks awaiting" value={`${stats.logsApprovedPending}`} tone="accent" />
+            <StatCard icon={CheckCircle2} label="Tasks graded" value={`${stats.tasksDone}`} />
+            <StatCard icon={TrendingUp} label="Companies" value={`${stats.totalCompanies}`} />
           </div>
-          <Card className="mt-6">
-            <CardHeader><CardTitle>My supervisees</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {students.filter(s => s.academicSupervisor === "Dr. Bola Adeyemi").map(s => (
-                  <div key={s.id} className="flex items-center gap-4 p-3 rounded-md hover:bg-muted/40">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 text-primary grid place-items-center text-sm font-medium">
-                      {s.name.split(" ").map(n => n[0]).join("")}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{s.name}</div>
-                      <div className="text-xs text-muted-foreground">{s.matric} · {s.company ?? "—"}</div>
-                    </div>
-                    <div className="w-32">
-                      <Progress value={s.progress} />
-                    </div>
-                    <Badge variant="outline">{s.status}</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </>
       )}
 
       {role === "industry" && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Briefcase} label="Active interns" value="4" hint="across 2 teams" />
-            <StatCard icon={AlertCircle} label="Logbook pending" value="2" tone="accent" />
-            <StatCard icon={CheckCircle2} label="Tasks graded" value="23" />
-            <StatCard icon={TrendingUp} label="Avg. score" value="89%" />
+            <StatCard icon={Briefcase} label="Active interns" value={`${stats.totalStudents}`} />
+            <StatCard icon={AlertCircle} label="Logbook pending" value={`${stats.logsApprovedPending}`} tone="accent" />
+            <StatCard icon={CheckCircle2} label="Tasks graded" value={`${stats.tasksDone}`} />
+            <StatCard icon={TrendingUp} label="Companies" value={`${stats.totalCompanies}`} />
           </div>
-          <Card className="mt-6">
-            <CardHeader><CardTitle>Your assigned interns</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {students.filter(s => s.industrySupervisor === "Daniel Yusuf").map(s => (
-                  <div key={s.id} className="flex items-center gap-4 p-3 rounded-md hover:bg-muted/40">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 text-primary grid place-items-center text-sm font-medium">
-                      {s.name.split(" ").map(n => n[0]).join("")}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{s.name}</div>
-                      <div className="text-xs text-muted-foreground">{s.matric}</div>
-                    </div>
-                    <div className="w-32"><Progress value={s.progress} /></div>
-                    <Badge variant="outline">{s.status}</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </>
       )}
 
       {role === "admin" && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={GraduationCap} label="Students" value={`${students.length}`} hint={`${students.filter(s => s.status === "placed").length} placed`} />
-            <StatCard icon={Briefcase} label="Companies" value="6" />
-            <StatCard icon={Users} label="Supervisors" value={`${supervisors.length}`} />
-            <StatCard icon={AlertCircle} label="Pending placement" value={`${students.filter(s => s.status === "pending").length}`} tone="accent" />
+            <StatCard icon={GraduationCap} label="Students" value={`${stats.totalStudents}`} />
+            <StatCard icon={Briefcase} label="Companies" value={`${stats.totalCompanies}`} />
+            <StatCard icon={Users} label="Supervisors" value={`${stats.totalSupervisors}`} />
+            <StatCard icon={AlertCircle} label="Pending placement" value={`${stats.pendingPlacement}`} tone="accent" />
           </div>
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Submission trend (last 7 weeks)</CardTitle>
-              <CardDescription>Logbook submissions vs. approvals across all interns (%)</CardDescription>
+              <CardDescription>Logbook submissions vs. approvals across all interns</CardDescription>
             </CardHeader>
             <CardContent className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
