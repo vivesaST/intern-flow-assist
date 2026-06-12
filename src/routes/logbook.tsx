@@ -28,6 +28,8 @@ import { Paperclip } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/role-context";
 import { toast } from "sonner";
+import { AttachmentGallery } from "@/components/attachment-gallery";
+import { CommentThread } from "@/components/comment-thread";
 
 type LogStatus = "draft" | "submitted" | "approved" | "revision";
 type LogEntry = {
@@ -39,6 +41,8 @@ type LogEntry = {
   activities: string | null;
   skills: string[] | null;
   status: LogStatus;
+  attachments: string[] | null;
+  feedback: string | null;
 };
 
 export const Route = createFileRoute("/logbook")({
@@ -71,6 +75,8 @@ function LogbookPage() {
   const [title, setTitle] = useState("");
   const [activities, setActivities] = useState("");
   const [skills, setSkills] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/auth" });
@@ -80,7 +86,7 @@ function LogbookPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("log_entries")
-      .select("id, week, entry_date, hours, title, activities, skills, status")
+      .select("id, week, entry_date, hours, title, activities, skills, status, attachments, feedback")
       .order("week", { ascending: false });
     if (error) toast.error(error.message);
     setEntries((data as LogEntry[]) ?? []);
@@ -97,23 +103,53 @@ function LogbookPage() {
       toast.error("Week, date and title are required");
       return;
     }
-    const { error } = await supabase.from("log_entries").insert({
-      student_id: user.id,
-      week: parseInt(week, 10),
-      entry_date: date,
-      hours: hours ? parseFloat(hours) : 0,
-      title,
-      activities,
-      skills: skills ? skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
-      status,
-    });
-    if (error) {
-      toast.error(error.message);
+    setUploading(true);
+    const { data: inserted, error } = await supabase
+      .from("log_entries")
+      .insert({
+        student_id: user.id,
+        week: parseInt(week, 10),
+        entry_date: date,
+        hours: hours ? parseFloat(hours) : 0,
+        title,
+        activities,
+        skills: skills ? skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        status,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      setUploading(false);
+      toast.error(error?.message ?? "Failed to save entry");
       return;
     }
+    const uploadedPaths: string[] = [];
+    for (const f of files) {
+      if (f.size > 5 * 1024 * 1024) {
+        toast.error(`${f.name} is larger than 5MB, skipped`);
+        continue;
+      }
+      const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${user.id}/${inserted.id}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await supabase.storage
+        .from("logbook-attachments")
+        .upload(path, f, { contentType: f.type, upsert: false });
+      if (upErr) {
+        toast.error(`Upload failed: ${upErr.message}`);
+      } else {
+        uploadedPaths.push(path);
+      }
+    }
+    if (uploadedPaths.length > 0) {
+      await supabase
+        .from("log_entries")
+        .update({ attachments: uploadedPaths })
+        .eq("id", inserted.id);
+    }
+    setUploading(false);
     toast.success(status === "draft" ? "Draft saved" : "Submitted for approval");
     setOpen(false);
-    setWeek(""); setDate(""); setHours(""); setTitle(""); setActivities(""); setSkills("");
+    setWeek(""); setDate(""); setHours(""); setTitle(""); setActivities(""); setSkills(""); setFiles([]);
     load();
   };
 
@@ -141,10 +177,22 @@ function LogbookPage() {
                 <div><Label>Title</Label><Input placeholder="Sprint planning & component refactor" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
                 <div><Label>Activities</Label><Textarea placeholder="Describe what you did this week..." rows={4} value={activities} onChange={(e) => setActivities(e.target.value)} /></div>
                 <div><Label>Skills practised (comma separated)</Label><Input placeholder="React, TypeScript, Testing" value={skills} onChange={(e) => setSkills(e.target.value)} /></div>
+                <div>
+                  <Label>Attach images / screenshots (optional, max 5MB each)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+                  />
+                  {files.length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-1">{files.length} file(s) selected</div>
+                  )}
+                </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => save("draft")}>Save draft</Button>
-                <Button onClick={() => save("submitted")}>Submit for approval</Button>
+                <Button variant="outline" disabled={uploading} onClick={() => save("draft")}>Save draft</Button>
+                <Button disabled={uploading} onClick={() => save("submitted")}>{uploading ? "Saving…" : "Submit for approval"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -202,7 +250,7 @@ function LogbookPage() {
       </Card>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selected && (
             <>
               <DialogHeader>
@@ -220,9 +268,25 @@ function LogbookPage() {
                     {(selected.skills ?? []).map(s => <Badge key={s} variant="secondary">{s}</Badge>)}
                   </div>
                 </div>
+                {selected.attachments && selected.attachments.length > 0 && (
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase mb-2">Attachments</div>
+                    <AttachmentGallery paths={selected.attachments} />
+                  </div>
+                )}
+                {selected.feedback && (
+                  <div className="rounded-md border bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground uppercase mb-1">Supervisor feedback</div>
+                    <p className="text-sm whitespace-pre-wrap">{selected.feedback}</p>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Paperclip className="h-4 w-4 text-muted-foreground" />
                   <StatusBadge s={selected.status} />
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase mb-2">Comments</div>
+                  <CommentThread entryId={selected.id} />
                 </div>
               </div>
             </>
