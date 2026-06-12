@@ -22,20 +22,27 @@ export function CommentThread({ entryId }: { entryId: string }) {
   const load = async () => {
     const { data, error } = await supabase
       .from("log_comments")
-      .select("id, author_id, body, created_at, author:profiles!log_comments_author_id_fkey(full_name, email)")
+      .select("id, author_id, body, created_at")
       .eq("entry_id", entryId)
       .order("created_at", { ascending: true });
     if (error) {
-      // fallback without join if FK not declared
-      const { data: d2 } = await supabase
-        .from("log_comments")
-        .select("id, author_id, body, created_at")
-        .eq("entry_id", entryId)
-        .order("created_at", { ascending: true });
-      setComments((d2 as Comment[]) ?? []);
+      setComments([]);
       return;
     }
-    setComments((data as unknown as Comment[]) ?? []);
+    const rows = (data ?? []) as Comment[];
+    const ids = Array.from(new Set(rows.map((r) => r.author_id)));
+    if (ids.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      const map = new Map((profs ?? []).map((p: any) => [p.id, p]));
+      rows.forEach((r) => {
+        const p = map.get(r.author_id);
+        if (p) r.author = { full_name: p.full_name, email: p.email };
+      });
+    }
+    setComments(rows);
   };
 
   useEffect(() => {
