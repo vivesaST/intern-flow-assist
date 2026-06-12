@@ -86,13 +86,49 @@ export type Database = {
         }
         Relationships: []
       }
+      log_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          entry_id: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          entry_id: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          entry_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_comments_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "log_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       log_entries: {
         Row: {
           activities: string | null
+          attachments: string[]
           created_at: string
           entry_date: string
+          feedback: string | null
           hours: number
           id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           skills: string[] | null
           status: Database["public"]["Enums"]["log_status"]
           student_id: string
@@ -102,10 +138,14 @@ export type Database = {
         }
         Insert: {
           activities?: string | null
+          attachments?: string[]
           created_at?: string
           entry_date: string
+          feedback?: string | null
           hours?: number
           id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           skills?: string[] | null
           status?: Database["public"]["Enums"]["log_status"]
           student_id: string
@@ -115,10 +155,14 @@ export type Database = {
         }
         Update: {
           activities?: string | null
+          attachments?: string[]
           created_at?: string
           entry_date?: string
+          feedback?: string | null
           hours?: number
           id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           skills?: string[] | null
           status?: Database["public"]["Enums"]["log_status"]
           student_id?: string
@@ -335,6 +379,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_log_entry: { Args: { _entry_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
