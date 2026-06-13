@@ -18,6 +18,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { usePlacement } from "@/hooks/use-placement";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · SIMS" }] }),
@@ -56,6 +57,7 @@ function StatCard({
 function Dashboard() {
   const { role } = useRole();
   const { user } = useAuth();
+  const { placement, hasActivePlacement } = usePlacement();
   const [name, setName] = useState<string>("");
   const [stats, setStats] = useState({
     hoursLogged: 0, hoursTarget: 480,
@@ -156,6 +158,39 @@ function Dashboard() {
 
       {role === "student" && (
         <>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Your placement</CardTitle>
+              <CardDescription>Company and assigned supervisors</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {hasActivePlacement && placement ? (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase">Company</div>
+                    <div className="text-sm font-medium mt-1">{placement.company_name ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase">Academic supervisor</div>
+                    <div className="text-sm font-medium mt-1">{placement.academic_name ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase">Industry supervisor</div>
+                    <div className="text-sm font-medium mt-1">{placement.industry_name ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase">Status</div>
+                    <div className="mt-1"><Badge variant="outline">{placement.status}</Badge></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No placement assigned yet. Logbook and tasks unlock once your coordinator assigns a company and supervisor.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Clock} label="Hours logged" value={`${stats.hoursLogged}`} hint={`of ${stats.hoursTarget} target`} />
             <StatCard icon={BookOpen} label="Weeks completed" value={`${stats.weeksCompleted}/${stats.totalWeeks}`} />
