@@ -305,6 +305,8 @@ function LogbookPage() {
           )}
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </AppShell>
   );
 }
