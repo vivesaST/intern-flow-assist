@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePlacement } from "@/hooks/use-placement";
+import { PlacementRequired } from "@/components/placement-required";
 
 type TaskStatus = "todo" | "in-progress" | "submitted" | "graded";
 type TaskPriority = "low" | "medium" | "high";
@@ -38,6 +40,7 @@ const COLUMNS: { key: TaskStatus; title: string }[] = [
 
 function TasksPage() {
   const { user, role } = useRole();
+  const { hasActivePlacement, loading: placementLoading } = usePlacement();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -47,6 +50,7 @@ function TasksPage() {
   });
 
   const canCreate = role === "admin" || role === "academic" || role === "industry";
+  const gated = role === "student" && !placementLoading && !hasActivePlacement;
 
   const load = async () => {
     setLoading(true);
@@ -98,7 +102,7 @@ function TasksPage() {
       <PageHeader
         title="Tasks"
         description="Industry-assigned tasks tracked through to grading."
-        actions={canCreate ? (
+        actions={gated ? null : canCreate ? (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-accent text-accent-foreground hover:bg-accent/90">+ Assign task</Button>
@@ -145,6 +149,8 @@ function TasksPage() {
           </Dialog>
         ) : null}
       />
+      {gated ? <PlacementRequired feature="task tracking" /> : (
+      <>
       {loading && <div className="text-sm text-muted-foreground">Loading…</div>}
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         {COLUMNS.map((col) => {
@@ -184,6 +190,8 @@ function TasksPage() {
           );
         })}
       </div>
+      </>
+      )}
     </AppShell>
   );
 }

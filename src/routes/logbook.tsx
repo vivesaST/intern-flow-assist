@@ -30,6 +30,9 @@ import { useAuth } from "@/lib/role-context";
 import { toast } from "sonner";
 import { AttachmentGallery } from "@/components/attachment-gallery";
 import { CommentThread } from "@/components/comment-thread";
+import { usePlacement } from "@/hooks/use-placement";
+import { PlacementRequired } from "@/components/placement-required";
+import { useRole } from "@/lib/role-context";
 
 type LogStatus = "draft" | "submitted" | "approved" | "revision";
 type LogEntry = {
@@ -62,6 +65,8 @@ function StatusBadge({ s }: { s: LogEntry["status"] }) {
 
 function LogbookPage() {
   const { user, loading: authLoading } = useAuth();
+  const { role } = useRole();
+  const { hasActivePlacement, loading: placementLoading } = usePlacement();
   const navigate = useNavigate();
   const [selected, setSelected] = useState<LogEntry | null>(null);
   const [entries, setEntries] = useState<LogEntry[]>([]);
@@ -96,6 +101,8 @@ function LogbookPage() {
   useEffect(() => {
     if (user) load();
   }, [user]);
+
+  const gated = role === "student" && !placementLoading && !hasActivePlacement;
 
   const save = async (status: LogStatus) => {
     if (!user) return;
@@ -158,7 +165,7 @@ function LogbookPage() {
       <PageHeader
         title="Logbook"
         description="Weekly entries with industry and academic supervisor approvals."
-        actions={
+        actions={gated ? null : (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-accent text-accent-foreground hover:bg-accent/90">+ New entry</Button>
@@ -196,8 +203,13 @@ function LogbookPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        }
+        )}
       />
+
+      {gated ? (
+        <PlacementRequired feature="the logbook" />
+      ) : (
+      <>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
@@ -293,6 +305,8 @@ function LogbookPage() {
           )}
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </AppShell>
   );
 }
