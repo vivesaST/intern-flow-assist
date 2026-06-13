@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useRole } from "@/lib/role-context";
+import { StudentManageSheet } from "@/components/student-manage-sheet";
 
 type Row = {
   id: string;
@@ -26,12 +29,16 @@ export const Route = createFileRoute("/students")({
 });
 
 function StudentsPage() {
+  const { role } = useRole();
+  const canManage = role === "admin" || role === "academic";
+  const isAdmin = role === "admin";
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [manageId, setManageId] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
+  const load = async () => {
+    setLoading(true);
       // students = users with role 'student'
       const { data: roles, error: rErr } = await supabase
         .from("user_roles").select("user_id").eq("role", "student");
@@ -58,8 +65,8 @@ function StudentsPage() {
       });
       setRows(merged);
       setLoading(false);
-    })();
-  }, []);
+  };
+  useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
     if (!q.trim()) return rows;
@@ -94,6 +101,7 @@ function StudentsPage() {
                 <TableHead>Company</TableHead>
                 <TableHead>Progress</TableHead>
                 <TableHead>Status</TableHead>
+                {canManage && <TableHead></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -105,6 +113,11 @@ function StudentsPage() {
                   <TableCell className="text-sm">{s.company ?? <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell className="w-40"><Progress value={s.progress} /></TableCell>
                   <TableCell><Badge variant="outline">{s.status}</Badge></TableCell>
+                  {canManage && (
+                    <TableCell>
+                      <Button size="sm" variant="ghost" onClick={() => setManageId(s.id)}>Manage</Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -112,6 +125,13 @@ function StudentsPage() {
           )}
         </CardContent>
       </Card>
+      <StudentManageSheet
+        studentId={manageId}
+        open={!!manageId}
+        onOpenChange={(o) => !o && setManageId(null)}
+        isAdmin={isAdmin}
+        onChanged={load}
+      />
     </AppShell>
   );
 }
