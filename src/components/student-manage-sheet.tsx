@@ -75,7 +75,7 @@ export function StudentManageSheet({
       department: profile.department || null,
       level: profile.level || null,
       semester: profile.semester || null,
-    }).eq("id", studentId);
+    } as any).eq("id", studentId);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Profile updated");
