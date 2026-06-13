@@ -47,7 +47,7 @@ function ProfilePage() {
       department: form.department || null,
       level: form.level || null,
       semester: form.semester || null,
-    }).eq("id", user.id);
+    } as any).eq("id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
     else toast.success("Profile saved");
