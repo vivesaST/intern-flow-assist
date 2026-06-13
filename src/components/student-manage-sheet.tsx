@@ -90,7 +90,7 @@ export function StudentManageSheet({
       company_id: placement.company_id || null,
       academic_supervisor_id: placement.academic_supervisor_id || null,
       industry_supervisor_id: placement.industry_supervisor_id || null,
-      status: placement.status,
+      status: placement.status as "pending" | "placed" | "completed",
       progress: placement.progress,
     };
     const { error } = placement.id
