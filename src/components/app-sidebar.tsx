@@ -11,6 +11,7 @@ import {
   Settings,
   Briefcase,
   CheckSquare,
+  Clock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,6 +32,7 @@ type Item = { title: string; url: string; icon: any; roles: Role[] };
 
 const items: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["student", "academic", "industry", "admin"] },
+  { title: "Attendance", url: "/attendance", icon: Clock, roles: ["student", "academic", "industry", "admin"] },
   { title: "Logbook", url: "/logbook", icon: BookOpen, roles: ["student", "academic", "industry"] },
   { title: "Approvals", url: "/approvals", icon: CheckSquare, roles: ["academic", "industry", "admin"] },
   { title: "Tasks", url: "/tasks", icon: ListChecks, roles: ["student", "industry"] },
