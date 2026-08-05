@@ -82,6 +82,8 @@ function LogbookPage() {
   const [skills, setSkills] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LogEntry | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/auth" });
@@ -103,6 +105,33 @@ function LogbookPage() {
   }, [user]);
 
   const gated = role === "student" && !placementLoading && !hasActivePlacement;
+  const isStudent = role === "student";
+
+  const resetForm = () => {
+    setEditingId(null);
+    setWeek(""); setDate(""); setHours(""); setTitle(""); setActivities(""); setSkills(""); setFiles([]);
+  };
+
+  const startEdit = (e: LogEntry) => {
+    setEditingId(e.id);
+    setWeek(String(e.week));
+    setDate(e.entry_date);
+    setHours(String(e.hours ?? ""));
+    setTitle(e.title);
+    setActivities(e.activities ?? "");
+    setSkills((e.skills ?? []).join(", "));
+    setFiles([]);
+    setOpen(true);
+  };
+
+  const removeEntry = async (entry: LogEntry) => {
+    const { error } = await supabase.from("log_entries").delete().eq("id", entry.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Entry deleted");
+    setDeleteTarget(null);
+    setSelected(null);
+    load();
+  };
 
   const save = async (status: LogStatus) => {
     if (!user) return;
@@ -111,18 +140,46 @@ function LogbookPage() {
       return;
     }
     setUploading(true);
+    const base = {
+      week: parseInt(week, 10),
+      entry_date: date,
+      hours: hours ? parseFloat(hours) : 0,
+      title,
+      activities,
+      skills: skills ? skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      status,
+    };
+
+    if (editingId) {
+      const { error: upErr } = await supabase.from("log_entries").update(base).eq("id", editingId);
+      if (upErr) {
+        setUploading(false);
+        toast.error(upErr.message);
+        return;
+      }
+      const newPaths: string[] = [];
+      for (const f of files) {
+        if (f.size > 5 * 1024 * 1024) { toast.error(`${f.name} is larger than 5MB, skipped`); continue; }
+        const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${user.id}/${editingId}/${Date.now()}-${safeName}`;
+        const { error: sErr } = await supabase.storage.from("logbook-attachments").upload(path, f, { contentType: f.type, upsert: false });
+        if (sErr) toast.error(`Upload failed: ${sErr.message}`); else newPaths.push(path);
+      }
+      if (newPaths.length > 0) {
+        const existing = entries.find((e) => e.id === editingId)?.attachments ?? [];
+        await supabase.from("log_entries").update({ attachments: [...existing, ...newPaths] }).eq("id", editingId);
+      }
+      setUploading(false);
+      toast.success("Entry updated");
+      setOpen(false);
+      resetForm();
+      load();
+      return;
+    }
+
     const { data: inserted, error } = await supabase
       .from("log_entries")
-      .insert({
-        student_id: user.id,
-        week: parseInt(week, 10),
-        entry_date: date,
-        hours: hours ? parseFloat(hours) : 0,
-        title,
-        activities,
-        skills: skills ? skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        status,
-      })
+      .insert({ student_id: user.id, ...base })
       .select("id")
       .single();
     if (error || !inserted) {
@@ -156,7 +213,7 @@ function LogbookPage() {
     setUploading(false);
     toast.success(status === "draft" ? "Draft saved" : "Submitted for approval");
     setOpen(false);
-    setWeek(""); setDate(""); setHours(""); setTitle(""); setActivities(""); setSkills(""); setFiles([]);
+    resetForm();
     load();
   };
 
