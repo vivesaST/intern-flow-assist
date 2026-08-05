@@ -27,7 +27,7 @@ export function StudentManageSheet({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
-  const [profile, setProfile] = useState({ full_name: "", email: "", matric: "", department: "", level: "", semester: "" });
+  const [profile, setProfile] = useState({ full_name: "", email: "", matric: "", department: "", level: "", semester: "", company_name: "", university: "" });
   const [placement, setPlacement] = useState<{ id: string | null; company_id: string; academic_supervisor_id: string; industry_supervisor_id: string; status: string; progress: number }>({
     id: null, company_id: "", academic_supervisor_id: "", industry_supervisor_id: "", status: "pending", progress: 0,
   });
@@ -43,7 +43,7 @@ export function StudentManageSheet({
     if (!open || !studentId) return;
     (async () => {
       const [{ data: p }, { data: pl }, { data: c }, { data: s }] = await Promise.all([
-        supabase.from("profiles").select("full_name, email, matric, department, level, semester").eq("id", studentId).maybeSingle(),
+        supabase.from("profiles").select("*").eq("id", studentId).maybeSingle(),
         supabase.from("placements").select("*").eq("student_id", studentId).maybeSingle(),
         supabase.from("companies").select("id, name").order("name"),
         supabase.from("supervisors").select("id, name, type").order("name"),
@@ -51,6 +51,7 @@ export function StudentManageSheet({
       if (p) setProfile({
         full_name: p.full_name ?? "", email: p.email ?? "", matric: p.matric ?? "",
         department: p.department ?? "", level: (p as any).level ?? "", semester: (p as any).semester ?? "",
+        company_name: (p as any).company_name ?? "", university: (p as any).university ?? "",
       });
       setPlacement({
         id: pl?.id ?? null,
@@ -75,6 +76,8 @@ export function StudentManageSheet({
       department: profile.department || null,
       level: profile.level || null,
       semester: profile.semester || null,
+      company_name: profile.company_name || null,
+      university: profile.university || null,
     } as any).eq("id", studentId);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -149,6 +152,8 @@ export function StudentManageSheet({
             <div><Label>Email</Label><Input value={profile.email} onChange={e => setProfile({ ...profile, email: e.target.value })} /></div>
             <div><Label>Matric number</Label><Input value={profile.matric} onChange={e => setProfile({ ...profile, matric: e.target.value })} /></div>
             <div><Label>Department</Label><Input value={profile.department} onChange={e => setProfile({ ...profile, department: e.target.value })} /></div>
+            <div><Label>University</Label><Input value={profile.university} onChange={e => setProfile({ ...profile, university: e.target.value })} /></div>
+            <div><Label>Company / organisation</Label><Input value={profile.company_name} onChange={e => setProfile({ ...profile, company_name: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Level</Label>

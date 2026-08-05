@@ -90,6 +90,8 @@ function SignUpForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("student");
+  const [companyName, setCompanyName] = useState("");
+  const [university, setUniversity] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -100,7 +102,7 @@ function SignUpForm() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { full_name: fullName, role },
+        data: { full_name: fullName, role, company_name: companyName, university },
       },
     });
     setBusy(false);
@@ -126,6 +128,18 @@ function SignUpForm() {
         <Label htmlFor="pw-up">Password</Label>
         <Input id="pw-up" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
       </div>
+      {role === "student" && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="uni-up">University</Label>
+            <Input id="uni-up" placeholder="e.g. Miva Open University" value={university} onChange={(e) => setUniversity(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="co-up">Company / organisation you are interning with</Label>
+            <Input id="co-up" placeholder="e.g. Andela Nigeria" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+          </div>
+        </>
+      )}
       <div className="space-y-2">
         <Label>Sign up as</Label>
         <div className="grid grid-cols-2 gap-2">

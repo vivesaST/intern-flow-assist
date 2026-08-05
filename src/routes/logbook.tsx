@@ -33,6 +33,10 @@ import { CommentThread } from "@/components/comment-thread";
 import { usePlacement } from "@/hooks/use-placement";
 import { PlacementRequired } from "@/components/placement-required";
 import { useRole } from "@/lib/role-context";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type LogStatus = "draft" | "submitted" | "approved" | "revision";
 type LogEntry = {
@@ -82,6 +86,8 @@ function LogbookPage() {
   const [skills, setSkills] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LogEntry | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/auth" });
@@ -103,6 +109,33 @@ function LogbookPage() {
   }, [user]);
 
   const gated = role === "student" && !placementLoading && !hasActivePlacement;
+  const isStudent = role === "student";
+
+  const resetForm = () => {
+    setEditingId(null);
+    setWeek(""); setDate(""); setHours(""); setTitle(""); setActivities(""); setSkills(""); setFiles([]);
+  };
+
+  const startEdit = (e: LogEntry) => {
+    setEditingId(e.id);
+    setWeek(String(e.week));
+    setDate(e.entry_date);
+    setHours(String(e.hours ?? ""));
+    setTitle(e.title);
+    setActivities(e.activities ?? "");
+    setSkills((e.skills ?? []).join(", "));
+    setFiles([]);
+    setOpen(true);
+  };
+
+  const removeEntry = async (entry: LogEntry) => {
+    const { error } = await supabase.from("log_entries").delete().eq("id", entry.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Entry deleted");
+    setDeleteTarget(null);
+    setSelected(null);
+    load();
+  };
 
   const save = async (status: LogStatus) => {
     if (!user) return;
@@ -111,18 +144,46 @@ function LogbookPage() {
       return;
     }
     setUploading(true);
+    const base = {
+      week: parseInt(week, 10),
+      entry_date: date,
+      hours: hours ? parseFloat(hours) : 0,
+      title,
+      activities,
+      skills: skills ? skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      status,
+    };
+
+    if (editingId) {
+      const { error: upErr } = await supabase.from("log_entries").update(base).eq("id", editingId);
+      if (upErr) {
+        setUploading(false);
+        toast.error(upErr.message);
+        return;
+      }
+      const newPaths: string[] = [];
+      for (const f of files) {
+        if (f.size > 5 * 1024 * 1024) { toast.error(`${f.name} is larger than 5MB, skipped`); continue; }
+        const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${user.id}/${editingId}/${Date.now()}-${safeName}`;
+        const { error: sErr } = await supabase.storage.from("logbook-attachments").upload(path, f, { contentType: f.type, upsert: false });
+        if (sErr) toast.error(`Upload failed: ${sErr.message}`); else newPaths.push(path);
+      }
+      if (newPaths.length > 0) {
+        const existing = entries.find((e) => e.id === editingId)?.attachments ?? [];
+        await supabase.from("log_entries").update({ attachments: [...existing, ...newPaths] }).eq("id", editingId);
+      }
+      setUploading(false);
+      toast.success("Entry updated");
+      setOpen(false);
+      resetForm();
+      load();
+      return;
+    }
+
     const { data: inserted, error } = await supabase
       .from("log_entries")
-      .insert({
-        student_id: user.id,
-        week: parseInt(week, 10),
-        entry_date: date,
-        hours: hours ? parseFloat(hours) : 0,
-        title,
-        activities,
-        skills: skills ? skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        status,
-      })
+      .insert({ student_id: user.id, ...base })
       .select("id")
       .single();
     if (error || !inserted) {
@@ -156,7 +217,7 @@ function LogbookPage() {
     setUploading(false);
     toast.success(status === "draft" ? "Draft saved" : "Submitted for approval");
     setOpen(false);
-    setWeek(""); setDate(""); setHours(""); setTitle(""); setActivities(""); setSkills(""); setFiles([]);
+    resetForm();
     load();
   };
 
@@ -166,14 +227,14 @@ function LogbookPage() {
         title="Logbook"
         description="Weekly entries with industry and academic supervisor approvals."
         actions={gated ? null : (
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button className="bg-accent text-accent-foreground hover:bg-accent/90">+ New entry</Button>
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}>+ New entry</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>New logbook entry</DialogTitle>
-                <DialogDescription>Record activities for the current week.</DialogDescription>
+                <DialogTitle>{editingId ? "Edit logbook entry" : "New logbook entry"}</DialogTitle>
+                <DialogDescription>{editingId ? "Update the details of this entry." : "Record activities for the current week."}</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
@@ -185,7 +246,7 @@ function LogbookPage() {
                 <div><Label>Activities</Label><Textarea placeholder="Describe what you did this week..." rows={4} value={activities} onChange={(e) => setActivities(e.target.value)} /></div>
                 <div><Label>Skills practised (comma separated)</Label><Input placeholder="React, TypeScript, Testing" value={skills} onChange={(e) => setSkills(e.target.value)} /></div>
                 <div>
-                  <Label>Attach images / screenshots (optional, max 5MB each)</Label>
+                  <Label>{editingId ? "Add more images / screenshots" : "Attach images / screenshots"} (optional, max 5MB each)</Label>
                   <Input
                     type="file"
                     accept="image/*"
@@ -199,7 +260,7 @@ function LogbookPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" disabled={uploading} onClick={() => save("draft")}>Save draft</Button>
-                <Button disabled={uploading} onClick={() => save("submitted")}>{uploading ? "Saving…" : "Submit for approval"}</Button>
+                <Button disabled={uploading} onClick={() => save("submitted")}>{uploading ? "Saving…" : editingId ? "Save & submit" : "Submit for approval"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -243,6 +304,7 @@ function LogbookPage() {
                 <TableHead>Title</TableHead>
                 <TableHead>Hours</TableHead>
                 <TableHead>Status</TableHead>
+                {isStudent && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -253,6 +315,12 @@ function LogbookPage() {
                   <TableCell className="font-medium">{e.title}</TableCell>
                   <TableCell>{e.hours}</TableCell>
                   <TableCell><StatusBadge s={e.status} /></TableCell>
+                  {isStudent && (
+                    <TableCell className="text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
+                      <Button size="sm" variant="ghost" onClick={() => startEdit(e)}>Edit</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteTarget(e)}>Delete</Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -295,6 +363,12 @@ function LogbookPage() {
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Paperclip className="h-4 w-4 text-muted-foreground" />
                   <StatusBadge s={selected.status} />
+                  {isStudent && (
+                    <div className="ml-auto flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => { startEdit(selected); setSelected(null); }}>Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(selected)}>Delete</Button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground uppercase mb-2">Comments</div>
@@ -305,6 +379,21 @@ function LogbookPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Week {deleteTarget?.week} · {deleteTarget?.title}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTarget && removeEntry(deleteTarget)}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </>
       )}
     </AppShell>

@@ -19,6 +19,7 @@ type Row = {
   matric: string | null;
   department: string | null;
   company: string | null;
+  university: string | null;
   progress: number;
   status: string;
 };
@@ -47,7 +48,7 @@ function StudentsPage() {
       if (ids.length === 0) { setRows([]); setLoading(false); return; }
 
       const [{ data: profiles }, { data: placements }, { data: companies }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email, matric, department").in("id", ids),
+        supabase.from("profiles").select("*").in("id", ids),
         supabase.from("placements").select("student_id, company_id, progress, status").in("student_id", ids),
         supabase.from("companies").select("id, name"),
       ]);
@@ -58,7 +59,8 @@ function StudentsPage() {
         return {
           id: p.id, full_name: p.full_name, email: p.email,
           matric: p.matric, department: p.department,
-          company: pl?.company_id ? cmap.get(pl.company_id) ?? null : null,
+          company: (pl?.company_id ? cmap.get(pl.company_id) : null) ?? (p as any).company_name ?? null,
+          university: (p as any).university ?? null,
           progress: pl?.progress ?? 0,
           status: pl?.status ?? "pending",
         };
@@ -74,7 +76,9 @@ function StudentsPage() {
     return rows.filter(r =>
       (r.full_name ?? "").toLowerCase().includes(s) ||
       (r.matric ?? "").toLowerCase().includes(s) ||
-      (r.department ?? "").toLowerCase().includes(s),
+      (r.department ?? "").toLowerCase().includes(s) ||
+      (r.company ?? "").toLowerCase().includes(s) ||
+      (r.university ?? "").toLowerCase().includes(s),
     );
   }, [rows, q]);
 
@@ -98,6 +102,7 @@ function StudentsPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Matric</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>University</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Progress</TableHead>
                 <TableHead>Status</TableHead>
@@ -110,6 +115,7 @@ function StudentsPage() {
                   <TableCell className="font-medium">{s.full_name ?? s.email ?? "—"}</TableCell>
                   <TableCell className="text-sm">{s.matric ?? "—"}</TableCell>
                   <TableCell className="text-sm">{s.department ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{s.university ?? <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell className="text-sm">{s.company ?? <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell className="w-40"><Progress value={s.progress} /></TableCell>
                   <TableCell><Badge variant="outline">{s.status}</Badge></TableCell>
