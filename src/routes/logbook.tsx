@@ -33,6 +33,10 @@ import { CommentThread } from "@/components/comment-thread";
 import { usePlacement } from "@/hooks/use-placement";
 import { PlacementRequired } from "@/components/placement-required";
 import { useRole } from "@/lib/role-context";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type LogStatus = "draft" | "submitted" | "approved" | "revision";
 type LogEntry = {
@@ -359,6 +363,12 @@ function LogbookPage() {
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Paperclip className="h-4 w-4 text-muted-foreground" />
                   <StatusBadge s={selected.status} />
+                  {isStudent && (
+                    <div className="ml-auto flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => { startEdit(selected); setSelected(null); }}>Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => setDeleteTarget(selected)}>Delete</Button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground uppercase mb-2">Comments</div>
@@ -369,6 +379,21 @@ function LogbookPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Week {deleteTarget?.week} · {deleteTarget?.title}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTarget && removeEntry(deleteTarget)}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </>
       )}
     </AppShell>
