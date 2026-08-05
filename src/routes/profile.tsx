@@ -21,18 +21,19 @@ function ProfilePage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ full_name: "", email: "", matric: "", department: "", level: "", semester: "" });
+  const [form, setForm] = useState({ full_name: "", email: "", matric: "", department: "", level: "", semester: "", company_name: "", university: "" });
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     (async () => {
       const { data, error } = await supabase
-        .from("profiles").select("full_name, email, matric, department, level, semester").eq("id", user.id).maybeSingle();
+        .from("profiles").select("*").eq("id", user.id).maybeSingle();
       if (error) toast.error(error.message);
       else if (data) setForm({
         full_name: data.full_name ?? "", email: data.email ?? user.email ?? "",
         matric: data.matric ?? "", department: data.department ?? "",
         level: (data as any).level ?? "", semester: (data as any).semester ?? "",
+        company_name: (data as any).company_name ?? "", university: (data as any).university ?? "",
       });
       setLoading(false);
     })();
@@ -47,6 +48,8 @@ function ProfilePage() {
       department: form.department || null,
       level: form.level || null,
       semester: form.semester || null,
+      company_name: form.company_name || null,
+      university: form.university || null,
     } as any).eq("id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -87,6 +90,8 @@ function ProfilePage() {
               <div><Label>Email</Label><Input value={form.email} disabled /></div>
               <div><Label>Matric number</Label><Input value={form.matric} onChange={e => setForm({ ...form, matric: e.target.value })} /></div>
               <div><Label>Department</Label><Input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} /></div>
+              <div><Label>University</Label><Input value={form.university} placeholder="Your university" onChange={e => setForm({ ...form, university: e.target.value })} /></div>
+              <div><Label>Company / organisation</Label><Input value={form.company_name} placeholder="Where you are interning" onChange={e => setForm({ ...form, company_name: e.target.value })} /></div>
               <div>
                 <Label>Level</Label>
                 <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
