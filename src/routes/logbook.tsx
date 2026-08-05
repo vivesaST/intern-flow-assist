@@ -223,14 +223,14 @@ function LogbookPage() {
         title="Logbook"
         description="Weekly entries with industry and academic supervisor approvals."
         actions={gated ? null : (
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button className="bg-accent text-accent-foreground hover:bg-accent/90">+ New entry</Button>
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={resetForm}>+ New entry</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>New logbook entry</DialogTitle>
-                <DialogDescription>Record activities for the current week.</DialogDescription>
+                <DialogTitle>{editingId ? "Edit logbook entry" : "New logbook entry"}</DialogTitle>
+                <DialogDescription>{editingId ? "Update the details of this entry." : "Record activities for the current week."}</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
@@ -242,7 +242,7 @@ function LogbookPage() {
                 <div><Label>Activities</Label><Textarea placeholder="Describe what you did this week..." rows={4} value={activities} onChange={(e) => setActivities(e.target.value)} /></div>
                 <div><Label>Skills practised (comma separated)</Label><Input placeholder="React, TypeScript, Testing" value={skills} onChange={(e) => setSkills(e.target.value)} /></div>
                 <div>
-                  <Label>Attach images / screenshots (optional, max 5MB each)</Label>
+                  <Label>{editingId ? "Add more images / screenshots" : "Attach images / screenshots"} (optional, max 5MB each)</Label>
                   <Input
                     type="file"
                     accept="image/*"
@@ -256,7 +256,7 @@ function LogbookPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" disabled={uploading} onClick={() => save("draft")}>Save draft</Button>
-                <Button disabled={uploading} onClick={() => save("submitted")}>{uploading ? "Saving…" : "Submit for approval"}</Button>
+                <Button disabled={uploading} onClick={() => save("submitted")}>{uploading ? "Saving…" : editingId ? "Save & submit" : "Submit for approval"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -300,6 +300,7 @@ function LogbookPage() {
                 <TableHead>Title</TableHead>
                 <TableHead>Hours</TableHead>
                 <TableHead>Status</TableHead>
+                {isStudent && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -310,6 +311,12 @@ function LogbookPage() {
                   <TableCell className="font-medium">{e.title}</TableCell>
                   <TableCell>{e.hours}</TableCell>
                   <TableCell><StatusBadge s={e.status} /></TableCell>
+                  {isStudent && (
+                    <TableCell className="text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
+                      <Button size="sm" variant="ghost" onClick={() => startEdit(e)}>Edit</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteTarget(e)}>Delete</Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
