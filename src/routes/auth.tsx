@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROLES, type Role } from "@/lib/mock-data";
 import { useAuth } from "@/lib/role-context";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -25,25 +24,11 @@ function AuthPage() {
   }, [user, loading, navigate]);
 
   return (
-    <div className="min-h-screen grid md:grid-cols-2">
-      <div className="hidden md:flex bg-primary text-primary-foreground p-12 flex-col justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-md bg-accent text-accent-foreground grid place-items-center font-bold">S</div>
-          <span className="font-semibold">SIMS</span>
-        </Link>
-        <div>
-          <GraduationCap className="h-10 w-10 text-accent mb-4" />
-          <h2 className="text-3xl font-bold leading-tight">Smart Internship Management System</h2>
-          <p className="mt-3 text-primary-foreground/80 max-w-md">
-            Sign in or create an account to manage logbooks, evaluations, placements, and supervisor coordination.
-          </p>
-        </div>
-        <p className="text-xs text-primary-foreground/60">© 2026 SIMS</p>
-      </div>
-      <div className="flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background">
+      <div className="min-h-screen flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Welcome</CardTitle>
+            <CardTitle className="font-serif text-2xl">Welcome</CardTitle>
             <CardDescription>Sign in or create your account.</CardDescription>
           </CardHeader>
           <CardContent>

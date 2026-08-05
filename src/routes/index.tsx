@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   BookOpen,
   ClipboardCheck,
@@ -10,7 +9,6 @@ import {
   GraduationCap,
   Building2,
   ShieldCheck,
-  ArrowRight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -37,78 +35,34 @@ function Landing() {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-md bg-primary text-primary-foreground grid place-items-center font-bold text-sm">SI</div>
-            <div className="leading-tight">
-              <div className="font-semibold text-foreground">Smart Internship</div>
-              <div className="text-xs text-muted-foreground">SI · Internship Platform</div>
-            </div>
-          </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-            <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#audiences" className="hover:text-foreground">For institutions & industry</a>
-            <a href="#stack" className="hover:text-foreground">Technology</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Button asChild variant="ghost"><Link to="/login">Sign in</Link></Button>
-            <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90">
-              <Link to="/dashboard">Enter platform <ArrowRight className="ml-1 h-4 w-4" /></Link>
-            </Button>
-          </div>
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-end">
+          <Button asChild variant="ghost"><Link to="/login">Sign in</Link></Button>
         </div>
       </header>
 
       {/* Hero */}
       <section className="bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto px-6 py-24 text-center">
-          <Badge className="bg-accent text-accent-foreground mb-4">Final Year Project · 2026</Badge>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
-              Automate the entire internship lifecycle — from placement to evaluation.
+          <h1 className="font-serif text-4xl md:text-5xl font-bold tracking-tight leading-tight">
+              Automate the entire internship lifecycle.
           </h1>
           <p className="mt-5 text-primary-foreground/80 text-lg max-w-2xl mx-auto">
               Smart Internship (SI) gives universities and host companies one platform to manage logbooks,
               supervisor assignments, tasks, and evaluations with full transparency.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3 justify-center">
-              <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                <Link to="/dashboard">Launch dashboard</Link>
-              </Button>
-              <Button asChild size="lg" variant="ghost" className="border border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10">
-                <Link to="/login">Sign in as another role</Link>
-              </Button>
-          </div>
-          <div className="mt-10 grid grid-cols-3 gap-6 max-w-md mx-auto">
-              {[
-                { k: "60%", v: "Less paperwork" },
-                { k: "4×", v: "Faster approvals" },
-                { k: "100%", v: "Audit trail" },
-              ].map((s) => (
-                <div key={s.v}>
-                  <div className="text-2xl font-bold text-accent">{s.k}</div>
-                  <div className="text-xs text-primary-foreground/70">{s.v}</div>
-                </div>
-              ))}
-          </div>
         </div>
       </section>
 
       {/* Features */}
       <section id="features" className="py-20">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="max-w-2xl">
-            <h2 className="text-3xl font-bold tracking-tight">Everything an internship office needs</h2>
-            <p className="text-muted-foreground mt-3">
-              Replace spreadsheets, paper logbooks, and email threads with a single, role-aware system.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f) => (
               <div key={f.title} className="rounded-lg border bg-card p-6 hover:shadow-md transition-shadow">
                 <div className="h-10 w-10 rounded-md bg-accent/15 text-accent grid place-items-center mb-4">
                   <f.icon className="h-5 w-5" />
                 </div>
-                <h3 className="font-semibold text-foreground">{f.title}</h3>
+                <h3 className="font-serif font-semibold text-foreground">{f.title}</h3>
                 <p className="text-sm text-muted-foreground mt-2">{f.desc}</p>
               </div>
             ))}
@@ -121,7 +75,7 @@ function Landing() {
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-6">
           <div className="rounded-xl border bg-card p-8">
             <GraduationCap className="h-8 w-8 text-primary mb-4" />
-            <h3 className="text-xl font-semibold">For institutions</h3>
+            <h3 className="font-serif text-xl font-semibold">For institutions</h3>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground list-disc pl-5">
               <li>Coordinator dashboard for placement & supervisor assignment</li>
               <li>Workload-balanced supervisor matching</li>
@@ -131,7 +85,7 @@ function Landing() {
           </div>
           <div className="rounded-xl border bg-card p-8">
             <Building2 className="h-8 w-8 text-primary mb-4" />
-            <h3 className="text-xl font-semibold">For industry partners</h3>
+            <h3 className="font-serif text-xl font-semibold">For industry partners</h3>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground list-disc pl-5">
               <li>Assign tasks and approve weekly logbook entries</li>
               <li>Structured mid-term & final evaluations with rubrics</li>
@@ -141,21 +95,6 @@ function Landing() {
           </div>
         </div>
       </section>
-
-      {/* Stack */}
-      <section id="stack" className="py-20">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">Built on a modern stack</h2>
-          <p className="text-muted-foreground mt-3">React · TypeScript · TanStack Start · Tailwind · shadcn/ui · Recharts</p>
-        </div>
-      </section>
-
-      <footer className="border-t bg-primary text-primary-foreground/80">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row md:items-center justify-between gap-3 text-sm">
-          <div>© 2026 Smart Internship (SI) · Final Year Project</div>
-          <div>Smart Internship Management Platform</div>
-        </div>
-      </footer>
     </div>
   );
 }
