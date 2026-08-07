@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/role-context";
+import { useAuth, useRole } from "@/lib/role-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
@@ -19,6 +19,9 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { user } = useAuth();
+  const { role } = useRole();
+  const isStudent = role === "student";
+  const showUniversity = isStudent || role === "academic";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", matric: "", department: "", level: "", semester: "", company_name: "", university: "" });
@@ -88,10 +91,19 @@ function ProfilePage() {
             <div className="grid md:grid-cols-2 gap-3">
               <div><Label>Full name</Label><Input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
               <div><Label>Email</Label><Input value={form.email} disabled /></div>
-              <div><Label>Matric number</Label><Input value={form.matric} onChange={e => setForm({ ...form, matric: e.target.value })} /></div>
-              <div><Label>Department</Label><Input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} /></div>
-              <div><Label>University</Label><Input value={form.university} placeholder="Your university" onChange={e => setForm({ ...form, university: e.target.value })} /></div>
-              <div><Label>Company / organisation</Label><Input value={form.company_name} placeholder="Where you are interning" onChange={e => setForm({ ...form, company_name: e.target.value })} /></div>
+              {isStudent && (
+                <div><Label>Matric number</Label><Input value={form.matric} onChange={e => setForm({ ...form, matric: e.target.value })} /></div>
+              )}
+              {isStudent && (
+                <div><Label>Department</Label><Input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} /></div>
+              )}
+              {showUniversity && (
+                <div><Label>University</Label><Input value={form.university} placeholder="Your university" onChange={e => setForm({ ...form, university: e.target.value })} /></div>
+              )}
+              {role === "industry" && (
+                <div><Label>Company / organisation</Label><Input value={form.company_name} onChange={e => setForm({ ...form, company_name: e.target.value })} /></div>
+              )}
+              {isStudent && (
               <div>
                 <Label>Level</Label>
                 <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
@@ -101,6 +113,8 @@ function ProfilePage() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
+              {isStudent && (
               <div>
                 <Label>Semester</Label>
                 <Select value={form.semester} onValueChange={(v) => setForm({ ...form, semester: v })}>
@@ -111,6 +125,7 @@ function ProfilePage() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
             </div>
             <Button onClick={save} disabled={saving || loading}>{saving ? "Saving…" : "Save changes"}</Button>
           </CardContent>

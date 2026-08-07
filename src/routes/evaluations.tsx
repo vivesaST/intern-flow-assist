@@ -11,6 +11,7 @@ import { useAuth, useRole } from "@/lib/role-context";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { scopedStudentIds } from "@/lib/scope";
 
 export const Route = createFileRoute("/evaluations")({
   head: () => ({ meta: [{ title: "Evaluations · SIMS" }] }),
@@ -38,9 +39,8 @@ function EvaluationsPage() {
 
   useEffect(() => {
     (async () => {
-      if (canEvaluate) {
-        const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "student");
-        const ids = (roles ?? []).map(r => r.user_id);
+      if (canEvaluate && user) {
+        const ids = await scopedStudentIds(role, user.id);
         if (ids.length) {
           const { data: profs } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
           setStudents(profs ?? []);
@@ -49,7 +49,7 @@ function EvaluationsPage() {
         setStudentId(user.id);
       }
     })();
-  }, [canEvaluate, user?.id]);
+  }, [canEvaluate, user?.id, role]);
 
   useEffect(() => {
     if (!studentId) return;

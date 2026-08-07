@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 type Company = {
   id: string; name: string; sector: string | null;
   slots: number; filled: number; contact: string | null; rating: number | null;
+  verified: boolean; address: string | null;
 };
 
 export const Route = createFileRoute("/companies")({
@@ -41,11 +42,18 @@ function CompaniesPage() {
   };
   useEffect(() => { load(); }, []);
 
+  const setVerified = async (id: string, verified: boolean) => {
+    const { error } = await supabase.from("companies").update({ verified }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(verified ? "Company verified" : "Company marked unverified");
+    load();
+  };
+
   const addCompany = async () => {
     if (!form.name.trim()) return toast.error("Name required");
     const { error } = await supabase.from("companies").insert({
       name: form.name, sector: form.sector || null, slots: Number(form.slots) || 0,
-      contact: form.contact || null,
+      contact: form.contact || null, verified: true,
     });
     if (error) return toast.error(error.message);
     toast.success("Company added");
@@ -58,7 +66,7 @@ function CompaniesPage() {
     <AppShell>
       <PageHeader
         title="Partner companies"
-        description="Industry hosts with available internship slots."
+        description="Host organisations submitted by students, plus partners you add yourself. Verify each before placements go live."
         actions={role === "admin" ? (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -94,7 +102,14 @@ function CompaniesPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="font-semibold">{c.name}</div>
-                  {c.sector && <Badge variant="secondary" className="mt-1">{c.sector}</Badge>}
+                  <div className="flex gap-1 mt-1">
+                    {c.sector && <Badge variant="secondary">{c.sector}</Badge>}
+                    <Badge variant="outline" className={c.verified
+                      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                      : "bg-amber-100 text-amber-700 border-amber-200"}>
+                      {c.verified ? "verified" : "unverified"}
+                    </Badge>
+                  </div>
                 </div>
                 {c.rating != null && (
                   <div className="flex items-center gap-1 text-sm">
@@ -108,8 +123,13 @@ function CompaniesPage() {
                 </div>
                 <Progress value={c.slots ? (c.filled / c.slots) * 100 : 0} />
               </div>
-              <div className="text-xs text-muted-foreground mt-4 pt-3 border-t">
-                Contact: <span className="text-foreground">{c.contact}</span>
+              <div className="text-xs text-muted-foreground mt-4 pt-3 border-t flex items-center justify-between gap-2">
+                <span>Contact: <span className="text-foreground">{c.contact ?? "—"}</span></span>
+                {role === "admin" && (
+                  <Button size="sm" variant="outline" onClick={() => setVerified(c.id, !c.verified)}>
+                    {c.verified ? "Unverify" : "Verify"}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
