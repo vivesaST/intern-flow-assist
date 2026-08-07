@@ -32,7 +32,7 @@ export async function scopedStudentIds(role: Role, userId: string): Promise<stri
     .from("placements")
     .select("student_id")
     .in(column, supIds)
-    .in("status", ACTIVE_PLACEMENT_STATUSES as unknown as string[]);
+    .in("status", [...ACTIVE_PLACEMENT_STATUSES]);
 
   return Array.from(new Set((data ?? []).map((p) => p.student_id)));
 }
