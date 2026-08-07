@@ -167,7 +167,7 @@ function ApprovalsPage() {
       role === "industry" && selected.status === "submitted" ? "industry_approved" : "approved";
 
     const stamp = new Date().toISOString();
-    const patch: Record<string, unknown> = {
+    const patch: any = {
       status: next,
       feedback: feedback.trim() || null,
       reviewed_by: user.id,
