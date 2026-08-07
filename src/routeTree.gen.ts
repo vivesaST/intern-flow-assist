@@ -15,6 +15,7 @@ import { Route as StudentsRouteImport } from './routes/students'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PlacementsRouteImport } from './routes/placements'
+import { Route as PlacementRequestRouteImport } from './routes/placement-request'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LogbookRouteImport } from './routes/logbook'
 import { Route as EvaluationsRouteImport } from './routes/evaluations'
@@ -53,6 +54,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const PlacementsRoute = PlacementsRouteImport.update({
   id: '/placements',
   path: '/placements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlacementRequestRoute = PlacementRequestRouteImport.update({
+  id: '/placement-request',
+  path: '/placement-request',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/evaluations': typeof EvaluationsRoute
   '/logbook': typeof LogbookRoute
   '/login': typeof LoginRoute
+  '/placement-request': typeof PlacementRequestRoute
   '/placements': typeof PlacementsRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/evaluations': typeof EvaluationsRoute
   '/logbook': typeof LogbookRoute
   '/login': typeof LoginRoute
+  '/placement-request': typeof PlacementRequestRoute
   '/placements': typeof PlacementsRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/evaluations': typeof EvaluationsRoute
   '/logbook': typeof LogbookRoute
   '/login': typeof LoginRoute
+  '/placement-request': typeof PlacementRequestRoute
   '/placements': typeof PlacementsRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/evaluations'
     | '/logbook'
     | '/login'
+    | '/placement-request'
     | '/placements'
     | '/profile'
     | '/reports'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/evaluations'
     | '/logbook'
     | '/login'
+    | '/placement-request'
     | '/placements'
     | '/profile'
     | '/reports'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/evaluations'
     | '/logbook'
     | '/login'
+    | '/placement-request'
     | '/placements'
     | '/profile'
     | '/reports'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   EvaluationsRoute: typeof EvaluationsRoute
   LogbookRoute: typeof LogbookRoute
   LoginRoute: typeof LoginRoute
+  PlacementRequestRoute: typeof PlacementRequestRoute
   PlacementsRoute: typeof PlacementsRoute
   ProfileRoute: typeof ProfileRoute
   ReportsRoute: typeof ReportsRoute
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/placements'
       fullPath: '/placements'
       preLoaderRoute: typeof PlacementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/placement-request': {
+      id: '/placement-request'
+      path: '/placement-request'
+      fullPath: '/placement-request'
+      preLoaderRoute: typeof PlacementRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -345,6 +365,7 @@ const rootRouteChildren: RootRouteChildren = {
   EvaluationsRoute: EvaluationsRoute,
   LogbookRoute: LogbookRoute,
   LoginRoute: LoginRoute,
+  PlacementRequestRoute: PlacementRequestRoute,
   PlacementsRoute: PlacementsRoute,
   ProfileRoute: ProfileRoute,
   ReportsRoute: ReportsRoute,
@@ -355,13 +376,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
