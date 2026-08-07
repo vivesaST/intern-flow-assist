@@ -60,6 +60,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          address: string | null
           contact: string | null
           created_at: string
           filled: number
@@ -69,8 +70,10 @@ export type Database = {
           sector: string | null
           slots: number
           updated_at: string
+          verified: boolean
         }
         Insert: {
+          address?: string | null
           contact?: string | null
           created_at?: string
           filled?: number
@@ -80,8 +83,10 @@ export type Database = {
           sector?: string | null
           slots?: number
           updated_at?: string
+          verified?: boolean
         }
         Update: {
+          address?: string | null
           contact?: string | null
           created_at?: string
           filled?: number
@@ -91,6 +96,7 @@ export type Database = {
           sector?: string | null
           slots?: number
           updated_at?: string
+          verified?: boolean
         }
         Relationships: []
       }
@@ -164,6 +170,8 @@ export type Database = {
       }
       log_entries: {
         Row: {
+          academic_reviewed_at: string | null
+          academic_reviewed_by: string | null
           activities: string | null
           attachments: string[]
           created_at: string
@@ -171,6 +179,8 @@ export type Database = {
           feedback: string | null
           hours: number
           id: string
+          industry_reviewed_at: string | null
+          industry_reviewed_by: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           skills: string[] | null
@@ -181,6 +191,8 @@ export type Database = {
           week: number
         }
         Insert: {
+          academic_reviewed_at?: string | null
+          academic_reviewed_by?: string | null
           activities?: string | null
           attachments?: string[]
           created_at?: string
@@ -188,6 +200,8 @@ export type Database = {
           feedback?: string | null
           hours?: number
           id?: string
+          industry_reviewed_at?: string | null
+          industry_reviewed_by?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           skills?: string[] | null
@@ -198,6 +212,8 @@ export type Database = {
           week: number
         }
         Update: {
+          academic_reviewed_at?: string | null
+          academic_reviewed_by?: string | null
           activities?: string | null
           attachments?: string[]
           created_at?: string
@@ -205,6 +221,8 @@ export type Database = {
           feedback?: string | null
           hours?: number
           id?: string
+          industry_reviewed_at?: string | null
+          industry_reviewed_by?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           skills?: string[] | null
@@ -215,6 +233,75 @@ export type Database = {
           week?: number
         }
         Relationships: []
+      }
+      placement_requests: {
+        Row: {
+          acceptance_letter_path: string | null
+          company_address: string | null
+          company_id: string | null
+          company_name: string
+          created_at: string
+          id: string
+          industry_supervisor_email: string
+          industry_supervisor_name: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          acceptance_letter_path?: string | null
+          company_address?: string | null
+          company_id?: string | null
+          company_name: string
+          created_at?: string
+          id?: string
+          industry_supervisor_email: string
+          industry_supervisor_name: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          acceptance_letter_path?: string | null
+          company_address?: string | null
+          company_id?: string | null
+          company_name?: string
+          created_at?: string
+          id?: string
+          industry_supervisor_email?: string
+          industry_supervisor_name?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placement_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placement_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       placements: {
         Row: {
@@ -333,6 +420,7 @@ export type Database = {
           affiliation: string | null
           capacity: number
           created_at: string
+          email: string | null
           id: string
           load: number
           name: string
@@ -345,6 +433,7 @@ export type Database = {
           affiliation?: string | null
           capacity?: number
           created_at?: string
+          email?: string | null
           id?: string
           load?: number
           name: string
@@ -357,6 +446,7 @@ export type Database = {
           affiliation?: string | null
           capacity?: number
           created_at?: string
+          email?: string | null
           id?: string
           load?: number
           name?: string
@@ -436,6 +526,7 @@ export type Database = {
     }
     Functions: {
       can_access_log_entry: { Args: { _entry_id: string }; Returns: boolean }
+      can_view_student: { Args: { _student_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -443,11 +534,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      supervises_student: { Args: { _student_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "student" | "academic" | "industry" | "admin"
-      log_status: "draft" | "submitted" | "approved" | "revision"
-      placement_status: "pending" | "placed" | "completed"
+      log_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "revision"
+        | "industry_approved"
+      placement_status:
+        | "pending"
+        | "placed"
+        | "completed"
+        | "active"
+        | "rejected"
       supervisor_type: "academic" | "industry"
       task_priority: "low" | "medium" | "high"
       task_status: "todo" | "in-progress" | "submitted" | "graded"
@@ -579,8 +681,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["student", "academic", "industry", "admin"],
-      log_status: ["draft", "submitted", "approved", "revision"],
-      placement_status: ["pending", "placed", "completed"],
+      log_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "revision",
+        "industry_approved",
+      ],
+      placement_status: [
+        "pending",
+        "placed",
+        "completed",
+        "active",
+        "rejected",
+      ],
       supervisor_type: ["academic", "industry"],
       task_priority: ["low", "medium", "high"],
       task_status: ["todo", "in-progress", "submitted", "graded"],
