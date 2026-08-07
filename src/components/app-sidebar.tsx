@@ -2,7 +2,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   BookOpen,
-  ListChecks,
   ClipboardCheck,
   Building2,
   Users,
@@ -11,6 +10,7 @@ import {
   Settings,
   Briefcase,
   CheckSquare,
+  ListChecks,
   Clock,
 } from "lucide-react";
 import {
@@ -27,26 +27,44 @@ import {
 import { useRole } from "@/lib/role-context";
 import type { Role } from "@/lib/mock-data";
 
-type Item = { title: string; url: string; icon: any; roles: Role[] };
+type Item = { title: string; url: string; icon: any };
 
-const items: Item[] = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["student", "academic", "industry", "admin"] },
-  { title: "Attendance", url: "/attendance", icon: Clock, roles: ["student", "academic", "industry", "admin"] },
-  { title: "Logbook", url: "/logbook", icon: BookOpen, roles: ["student", "academic", "industry"] },
-  { title: "Approvals", url: "/approvals", icon: CheckSquare, roles: ["academic", "industry", "admin"] },
-  { title: "Tasks", url: "/tasks", icon: ListChecks, roles: ["student", "industry"] },
-  { title: "Evaluations", url: "/evaluations", icon: ClipboardCheck, roles: ["student", "academic", "industry", "admin"] },
-  { title: "Placements", url: "/placements", icon: Briefcase, roles: ["admin"] },
-  { title: "Students", url: "/students", icon: GraduationCap, roles: ["academic", "admin"] },
-  { title: "Supervisors", url: "/supervisors", icon: Users, roles: ["admin"] },
-  { title: "Companies", url: "/companies", icon: Building2, roles: ["admin"] },
-  { title: "Reports", url: "/reports", icon: BarChart3, roles: ["academic", "admin"] },
-];
+const ALL = {
+  dashboard: { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  attendance: { title: "Attendance", url: "/attendance", icon: Clock },
+  logbook: { title: "Logbook", url: "/logbook", icon: BookOpen },
+  tasks: { title: "Tasks", url: "/tasks", icon: ListChecks },
+  approvals: { title: "Approvals", url: "/approvals", icon: CheckSquare },
+  evaluations: { title: "Evaluations", url: "/evaluations", icon: ClipboardCheck },
+  placements: { title: "Placements", url: "/placements", icon: Briefcase },
+  students: { title: "Students", url: "/students", icon: GraduationCap },
+  supervisors: { title: "Supervisors", url: "/supervisors", icon: Users },
+  companies: { title: "Companies", url: "/companies", icon: Building2 },
+  reports: { title: "Reports", url: "/reports", icon: BarChart3 },
+} satisfies Record<string, Item>;
+
+/** Each role only sees nav for actions it actually performs. */
+const NAV_BY_ROLE: Record<Role, Item[]> = {
+  student: [ALL.dashboard, ALL.attendance, ALL.logbook, ALL.tasks, ALL.evaluations],
+  industry: [ALL.dashboard, ALL.attendance, ALL.tasks, ALL.approvals, ALL.evaluations],
+  academic: [ALL.dashboard, ALL.attendance, ALL.approvals, ALL.evaluations, ALL.students, ALL.reports],
+  admin: [
+    ALL.dashboard,
+    ALL.attendance,
+    ALL.approvals,
+    ALL.evaluations,
+    ALL.placements,
+    ALL.students,
+    ALL.supervisors,
+    ALL.companies,
+    ALL.reports,
+  ],
+};
 
 export function AppSidebar() {
   const { role } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const visible = items.filter((i) => i.roles.includes(role));
+  const visible = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.student;
 
   return (
     <Sidebar collapsible="icon">
