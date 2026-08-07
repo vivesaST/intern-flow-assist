@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/lib/role-context";
 import { StudentManageSheet } from "@/components/student-manage-sheet";
+import { useAuth } from "@/lib/role-context";
+import { scopedStudentIds } from "@/lib/scope";
 
 type Row = {
   id: string;
@@ -31,6 +33,7 @@ export const Route = createFileRoute("/students")({
 
 function StudentsPage() {
   const { role } = useRole();
+  const { user } = useAuth();
   const canManage = role === "admin" || role === "academic";
   const isAdmin = role === "admin";
   const [rows, setRows] = useState<Row[]>([]);
@@ -41,10 +44,8 @@ function StudentsPage() {
   const load = async () => {
     setLoading(true);
       // students = users with role 'student'
-      const { data: roles, error: rErr } = await supabase
-        .from("user_roles").select("user_id").eq("role", "student");
-      if (rErr) { toast.error(rErr.message); setLoading(false); return; }
-      const ids = (roles ?? []).map(r => r.user_id);
+      if (!user) { setLoading(false); return; }
+      const ids = await scopedStudentIds(role, user.id);
       if (ids.length === 0) { setRows([]); setLoading(false); return; }
 
       const [{ data: profiles }, { data: placements }, { data: companies }] = await Promise.all([
@@ -68,7 +69,7 @@ function StudentsPage() {
       setRows(merged);
       setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [user?.id, role]);
 
   const filtered = useMemo(() => {
     if (!q.trim()) return rows;

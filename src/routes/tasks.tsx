@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePlacement } from "@/hooks/use-placement";
+import { scopedStudentIds } from "@/lib/scope";
 import { PlacementRequired } from "@/components/placement-required";
 
 type TaskStatus = "todo" | "in-progress" | "submitted" | "graded";
@@ -49,28 +50,34 @@ function TasksPage() {
     title: "", description: "", priority: "medium", due_date: "", student_id: "",
   });
 
-  const canCreate = role === "admin" || role === "academic" || role === "industry";
+  // Only the industry supervisor (and the coordinator) assigns work.
+  const canCreate = role === "admin" || role === "industry";
+  const canGrade = canCreate;
   const gated = role === "student" && !placementLoading && !hasActivePlacement;
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("tasks").select("*").order("created_at", { ascending: false });
+    if (!user) return;
+    const ids = await scopedStudentIds(role, user.id);
+    if (ids.length === 0) { setTasks([]); setLoading(false); return; }
+    const { data, error } = await supabase
+      .from("tasks").select("*").in("student_id", ids).order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     else setTasks((data ?? []) as Task[]);
     setLoading(false);
   };
-  useEffect(() => { load(); }, [user?.id]);
+  useEffect(() => { load(); }, [user?.id, role]);
 
   useEffect(() => {
     if (!canCreate) return;
     (async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "student");
-      const ids = (roles ?? []).map(r => r.user_id);
-      if (ids.length === 0) return;
+      if (!user) return;
+      const ids = await scopedStudentIds(role, user.id);
+      if (ids.length === 0) { setStudents([]); return; }
       const { data: profs } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
       setStudents(profs ?? []);
     })();
-  }, [canCreate]);
+  }, [canCreate, user?.id, role]);
 
   const createTask = async () => {
     if (!form.title.trim() || !form.student_id) return toast.error("Title and student required");
@@ -90,11 +97,24 @@ function TasksPage() {
   };
 
   const advance = async (t: Task) => {
-    const next: TaskStatus = t.status === "todo" ? "in-progress" : t.status === "in-progress" ? "submitted" : t.status;
-    if (next === t.status) return;
-    const { error } = await supabase.from("tasks").update({ status: next }).eq("id", t.id);
-    if (error) return toast.error(error.message);
-    load();
+    // Students progress their own work; supervisors grade what has been submitted.
+    if (role === "student") {
+      const next: TaskStatus =
+        t.status === "todo" ? "in-progress" : t.status === "in-progress" ? "submitted" : t.status;
+      if (next === t.status) return;
+      const { error } = await supabase.from("tasks").update({ status: next }).eq("id", t.id);
+      if (error) return toast.error(error.message);
+      return load();
+    }
+    if (canGrade && t.status === "submitted") {
+      const grade = window.prompt("Grade for this task (e.g. A, B+, 75%)");
+      if (!grade) return;
+      const { error } = await supabase
+        .from("tasks").update({ status: "graded", grade }).eq("id", t.id);
+      if (error) return toast.error(error.message);
+      toast.success("Task graded");
+      return load();
+    }
   };
 
   return (

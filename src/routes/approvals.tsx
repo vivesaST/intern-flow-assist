@@ -135,7 +135,7 @@ function ApprovalsPage() {
     const { data: profs } = await supabase
       .from("profiles")
       .select("id, full_name, email")
-      .in("id", Array.from(new Set(rows.map((r) => r.student_id))).length ? ids : ids);
+      .in("id", ids);
     const map = new Map((profs ?? []).map((p: any) => [p.id, p]));
     rows.forEach((r) => {
       const p = map.get(r.student_id);
