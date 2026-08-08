@@ -68,6 +68,9 @@ function Dashboard() {
   });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [openTasks, setOpenTasks] = useState<any[]>([]);
+  const [myEvaluations, setMyEvaluations] = useState<
+    { evaluator: string; criterion: string; mid: number | null; final: number | null; at: string }[]
+  >([]);
   const [submissionTrend, setSubmissionTrend] = useState<{ week: string; submitted: number; approved: number }[]>([]);
 
   useEffect(() => {
@@ -90,6 +93,28 @@ function Dashboard() {
         }));
         setRecentLogs((logs ?? []).slice(0, 4));
         setOpenTasks((ts ?? []).filter(t => t.status !== "graded").slice(0, 4));
+
+        const { data: evals } = await supabase
+          .from("evaluations")
+          .select("criterion, mid_score, final_score, evaluator_id, updated_at")
+          .eq("student_id", user.id)
+          .order("updated_at", { ascending: false });
+        const evaluatorIds = Array.from(
+          new Set((evals ?? []).map((e: any) => e.evaluator_id).filter(Boolean)),
+        );
+        const { data: evProfiles } = evaluatorIds.length
+          ? await supabase.from("profiles").select("id, full_name, email").in("id", evaluatorIds)
+          : { data: [] as any[] };
+        const evMap = new Map((evProfiles ?? []).map((p: any) => [p.id, p.full_name ?? p.email]));
+        setMyEvaluations(
+          (evals ?? []).map((e: any) => ({
+            evaluator: evMap.get(e.evaluator_id) ?? "A supervisor",
+            criterion: e.criterion,
+            mid: e.mid_score,
+            final: e.final_score,
+            at: e.updated_at,
+          })),
+        );
       } else if (role === "admin") {
         const [{ count: cStud }, { count: cComp }, { count: cSup }, { data: pls }, { data: logs }] = await Promise.all([
           supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "student"),
@@ -261,6 +286,33 @@ function Dashboard() {
                 ))}
                 {recentLogs.length === 0 && <div className="text-xs text-muted-foreground">No entries yet.</div>}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Evaluation reports received</CardTitle>
+              <CardDescription>Scored by your academic and industry supervisors</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {myEvaluations.length === 0 ? (
+                <div className="text-xs text-muted-foreground">No evaluation report has been sent to you yet.</div>
+              ) : (
+                <div className="space-y-2">
+                  {myEvaluations.map((e, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3 rounded-md hover:bg-muted/40">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium capitalize">{e.criterion}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Sent by {e.evaluator} · {new Date(e.at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <Badge variant="outline">Mid {e.mid ?? "—"}</Badge>
+                      <Badge variant="outline">Final {e.final ?? "—"}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
