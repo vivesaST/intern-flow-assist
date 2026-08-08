@@ -1,7 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { RoleProvider } from "@/lib/role-context";
 import { Toaster } from "@/components/ui/sonner";
-import { useCommentNotifications } from "@/hooks/use-comment-notifications";
+import { useNotifications } from "@/hooks/use-notifications";
 
 import appCss from "../styles.css?url";
 
@@ -84,6 +84,6 @@ function RootComponent() {
 }
 
 function NotificationsBridge() {
-  useCommentNotifications();
+  useNotifications();
   return null;
 }
