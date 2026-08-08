@@ -45,7 +45,7 @@ const ALL = {
 
 /** Each role only sees nav for actions it actually performs. */
 const NAV_BY_ROLE: Record<Role, Item[]> = {
-  student: [ALL.dashboard, ALL.attendance, ALL.logbook, ALL.tasks, ALL.evaluations],
+  student: [ALL.dashboard, ALL.attendance, ALL.logbook, ALL.tasks],
   industry: [ALL.dashboard, ALL.attendance, ALL.tasks, ALL.approvals, ALL.evaluations],
   academic: [ALL.dashboard, ALL.attendance, ALL.approvals, ALL.evaluations, ALL.students, ALL.reports],
   admin: [
