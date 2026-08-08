@@ -39,14 +39,13 @@ function EvaluationsPage() {
 
   useEffect(() => {
     (async () => {
-      if (canEvaluate && user) {
-        const ids = await scopedStudentIds(role, user.id);
-        if (ids.length) {
-          const { data: profs } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
-          setStudents(profs ?? []);
-        }
-      } else if (user) {
-        setStudentId(user.id);
+      if (!canEvaluate || !user) return;
+      const ids = await scopedStudentIds(role, user.id);
+      if (ids.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
+        setStudents(profs ?? []);
+      } else {
+        setStudents([]);
       }
     })();
   }, [canEvaluate, user?.id, role]);
@@ -95,6 +94,23 @@ function EvaluationsPage() {
     final: scores[r.key]?.final ?? 0,
   }));
 
+  if (!canEvaluate) {
+    return (
+      <AppShell>
+        <PageHeader
+          title="Evaluations"
+          description="Evaluations are completed by your academic and industry supervisors."
+        />
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground">
+            You will receive a notification when a supervisor submits your evaluation report. Your scores appear on
+            your dashboard.
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <PageHeader
@@ -113,6 +129,11 @@ function EvaluationsPage() {
           <Select value={studentId} onValueChange={setStudentId}>
             <SelectTrigger><SelectValue placeholder="Pick student to evaluate" /></SelectTrigger>
             <SelectContent>
+              {students.length === 0 && (
+                <div className="px-3 py-2 text-xs text-muted-foreground">
+                  No students assigned to you yet.
+                </div>
+              )}
               {students.map(s => (
                 <SelectItem key={s.id} value={s.id}>{s.full_name ?? s.email ?? s.id}</SelectItem>
               ))}
