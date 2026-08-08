@@ -234,6 +234,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       placement_requests: {
         Row: {
           acceptance_letter_path: string | null
@@ -533,6 +566,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      notify_user: {
+        Args: {
+          _body: string
+          _link: string
+          _title: string
+          _type: string
+          _user: string
+        }
+        Returns: undefined
+      }
+      student_stakeholders: {
+        Args: { _student_id: string }
+        Returns: {
+          user_id: string
+        }[]
       }
       supervises_student: { Args: { _student_id: string }; Returns: boolean }
     }

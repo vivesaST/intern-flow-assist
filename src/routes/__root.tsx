@@ -1,7 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { RoleProvider } from "@/lib/role-context";
 import { Toaster } from "@/components/ui/sonner";
-import { useCommentNotifications } from "@/hooks/use-comment-notifications";
 
 import appCss from "../styles.css?url";
 
@@ -76,14 +75,8 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <RoleProvider>
-      <NotificationsBridge />
       <Outlet />
       <Toaster />
     </RoleProvider>
   );
-}
-
-function NotificationsBridge() {
-  useCommentNotifications();
-  return null;
 }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/role-context";
 import { ROLES } from "@/lib/mock-data";
 import { useNavigate } from "@tanstack/react-router";
+import { NotificationBell } from "@/components/notification-bell";
 
 export function HeaderBar() {
   const { role, user, signOut } = useAuth();
@@ -35,6 +36,7 @@ export function HeaderBar() {
         {user && (
           <>
             <Badge variant="outline" className="hidden sm:inline-flex">{roleLabel}</Badge>
+            <NotificationBell />
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">
